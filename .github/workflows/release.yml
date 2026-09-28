@@ -1,0 +1,124 @@
+name: Release
+
+# v1.2.3        -> CLI to npm + extension to the VS Code Marketplace
+# cli-v1.2.3    -> CLI only
+# vscode-v1.2.3 -> extension only
+# See RELEASING.md. The CI workflow runs first; nothing is published if it fails.
+on:
+  push:
+    tags: ['v*', 'cli-v*', 'vscode-v*']
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      cli: ${{ steps.plan.outputs.cli }}
+      vscode: ${{ steps.plan.outputs.vscode }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        name: Check the tag against the package versions
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          case "$tag" in
+            cli-v*)    version="${tag#cli-v}";    cli=true;  vscode=false ;;
+            vscode-v*) version="${tag#vscode-v}"; cli=false; vscode=true ;;
+            v*)        version="${tag#v}";        cli=true;  vscode=true ;;
+          esac
+          cli_version=$(node -p "require('./cli/package.json').version")
+          vscode_version=$(node -p "require('./vscode-extension/package.json').version")
+          if [ "$cli" = true ] && [ "$cli_version" != "$version" ]; then
+            echo "::error::Tag $tag does not match cli/package.json version $cli_version"; exit 1
+          fi
+          if [ "$vscode" = true ] && [ "$vscode_version" != "$version" ]; then
+            echo "::error::Tag $tag does not match vscode-extension/package.json version $vscode_version"; exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "cli=$cli" >> "$GITHUB_OUTPUT"
+          echo "vscode=$vscode" >> "$GITHUB_OUTPUT"
+
+  npm:
+    needs: [test, plan]
+    if: needs.plan.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci
+      - name: Publish to npm
+        if: env.NODE_AUTH_TOKEN != ''
+        # Provenance needs a public repository
+        run: npm publish --access public ${{ github.event.repository.private && ' ' || '--provenance' }}
+      - name: NPM_TOKEN is not set
+        if: env.NODE_AUTH_TOKEN == ''
+        run: echo "::warning::NPM_TOKEN secret not set; skipped publishing to npm (see RELEASING.md)"
+
+  marketplace:
+    needs: [test, plan]
+    if: needs.plan.outputs.vscode == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+    defaults:
+      run:
+        working-directory: vscode-extension
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vscode-extension/package-lock.json
+      - run: npm ci
+      - run: npm run package
+      - name: Publish to the VS Code Marketplace
+        if: env.VSCE_PAT != ''
+        run: npx vsce publish --packagePath clipcmd-${{ needs.plan.outputs.version }}.vsix
+      - name: VSCE_PAT is not set
+        if: env.VSCE_PAT == ''
+        run: echo "::warning::VSCE_PAT secret not set; skipped publishing to the Marketplace (see RELEASING.md)"
+
+  github-release:
+    needs: [plan, npm, marketplace]
+    # Runs when the publish jobs succeeded or were not part of this release
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Built and tested by the CI run above
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: clipcmd-*
+          merge-multiple: true
+          path: dist
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLI: ${{ needs.plan.outputs.cli }}
+          VSCODE: ${{ needs.plan.outputs.vscode }}
+        run: |
+          files=()
+          if [ "$CLI" = true ]; then files+=(dist/clipcmd-*.tgz); fi
+          if [ "$VSCODE" = true ]; then files+=(dist/clipcmd-*.vsix); fi
+          gh release create "$GITHUB_REF_NAME" "${files[@]}" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes

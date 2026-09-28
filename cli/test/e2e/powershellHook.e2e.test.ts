@@ -27,6 +27,8 @@ const HOOK = fs.readFileSync(path.join(REPO_ROOT, 'hooks', 'powershell.ps1'), 'l
 /** Custom prompt so tests can count prompts and see the $? it receives. */
 const PROMPT = 'function global:prompt { "PS[$?]> " }\n';
 const PROMPT_RE = /(?:PS|NEW)\[(?:True|False)\]>/g;
+/** A native program exiting with `code` (PowerShell 7 also runs on Linux and macOS). */
+const exitWith = (code: number) => (process.platform === 'win32' ? `cmd /c exit ${code}` : `sh -c 'exit ${code}'`);
 
 function available(exe: string): boolean {
   const r = spawnSync(exe, ['-NoLogo', '-NoProfile', '-Command', '$PSVersionTable.PSVersion.Major'], {
@@ -119,29 +121,30 @@ for (const edition of EDITIONS) {
         'Write-Output hello',
         'Get-ChildItem | Select-Object -First 1 | Out-Null',
         "Get-Item 'C:\\definitely\\missing'",
-        'cmd /c exit 7',
-        'cmd /c exit 7',
-        'cmd /c exit 0',
+        exitWith(7),
+        exitWith(7),
+        exitWith(0),
         "Write-Output 'h\u00e9llo \u20ac 100% & a=b'",
       ]);
       expect(blocks()).toEqual([
         ['Write-Output hello', 0],
         ['Get-ChildItem | Select-Object -First 1 | Out-Null', 0],
         ["Get-Item 'C:\\definitely\\missing'", 1],
-        ['cmd /c exit 7', 7],
-        ['cmd /c exit 7', 7],
-        ['cmd /c exit 0', 0],
+        [exitWith(7), 7],
+        [exitWith(7), 7],
+        [exitWith(0), 0],
         ["Write-Output 'h\u00e9llo \u20ac 100% & a=b'", 0],
       ]);
       expect(buttonCount(screen)).toBe(7);
-      expect(daemon.ringBuffer.getAll()[0].pwd).toBe(fs.realpathSync.native(home));
+      // macOS: the temp dir is reached through a symlink (/var -> /private/var)
+      expect([home, fs.realpathSync.native(home)]).toContain(daemon.ringBuffer.getAll()[0].pwd);
     }, 120000);
 
     it('ignores empty lines and keeps $? and $LASTEXITCODE for the user', async () => {
-      const { screen } = await runPs(PROMPT + HOOK, ['', "Get-Item 'C:\\nope'", '', 'cmd /c exit 3', '"LEC=$LASTEXITCODE"']);
+      const { screen } = await runPs(PROMPT + HOOK, ['', "Get-Item 'C:\\nope'", '', exitWith(3), '"LEC=$LASTEXITCODE"']);
       expect(blocks()).toEqual([
         ["Get-Item 'C:\\nope'", 1],
-        ['cmd /c exit 3', 3],
+        [exitWith(3), 3],
         ['"LEC=$LASTEXITCODE"', 0],
       ]);
       const text = stripAnsi(screen);

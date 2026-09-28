@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /cli
+    schedule:
+      interval: weekly
+    groups:
+      dev-dependencies:
+        dependency-type: development
+  - package-ecosystem: npm
+    directory: /vscode-extension
+    schedule:
+      interval: weekly
+    groups:
+      dev-dependencies:
+        dependency-type: development
+    ignore:
+      # Tracks the lowest supported VS Code (engines.vscode)
+      - dependency-name: '@types/vscode'
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

@@ -1,0 +1,36 @@
+name: Bug report
+description: Something does not work as described
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `clipcmd doctor`
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal and shell
+      placeholder: e.g. Windows Terminal 1.24 + PowerShell 7.5, iTerm2 + zsh 5.9, VS Code 1.105 + bash
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: e.g. Windows 11 24H2, macOS 15, Ubuntu 24.04
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: clipcmd version (`clipcmd --version`) and VS Code extension version, if used

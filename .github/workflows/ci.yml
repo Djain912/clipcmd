@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  cli:
+    name: CLI (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        node: [20, 22, 24]
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+
+      # bash, PowerShell 7 and (on Windows) Git Bash and Windows PowerShell
+      # come with the runners; the zsh and fish hook tests need these.
+      - name: Install zsh, fish and xdg-utils (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y zsh fish xdg-utils
+
+      - name: Install fish (macOS)
+        if: runner.os == 'macOS'
+        run: brew install fish
+
+      - name: Shell versions
+        shell: bash
+        run: |
+          bash --version | head -1
+          pwsh -NoLogo -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
+          if command -v zsh >/dev/null; then zsh --version; fi
+          if command -v fish >/dev/null; then fish --version; fi
+
+      - run: npm ci
+
+      - name: node-pty loads (output capture)
+        run: node -e "require('node-pty'); console.log('node-pty ok')"
+
+      - run: npm test
+
+      - name: Package
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 22
+        run: npm pack
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 22
+        with:
+          name: clipcmd-npm
+          path: cli/clipcmd-*.tgz
+          if-no-files-found: error
+
+  vscode-extension:
+    name: VS Code extension (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: vscode-extension
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vscode-extension/package-lock.json
+
+      - run: npm ci
+      - run: npm run compile
+      - run: npm run test:unit
+
+      - name: Integration tests (in VS Code)
+        if: runner.os != 'Linux'
+        run: npm run test:integration
+
+      - name: Integration tests (in VS Code, virtual display)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:integration
+
+      - name: Package
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run package
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: clipcmd-vsix
+          path: vscode-extension/clipcmd-*.vsix
+          if-no-files-found: error
