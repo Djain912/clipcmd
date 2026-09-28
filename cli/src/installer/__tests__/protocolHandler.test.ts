@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -137,8 +137,12 @@ describe.skipIf(!hasXdgMime)('Linux registration (xdg-mime)', () => {
       const id = /[?&]id=([0-9a-f-]+)/.exec(body)![1];
       // Without a display (CI), xdg-open ignores URL scheme handlers altogether
       const env = { ...process.env, DISPLAY: process.env.DISPLAY ?? (process.env.WAYLAND_DISPLAY ? undefined : ':99') };
-      const opened = spawnSync('xdg-open', [`${urlScheme()}://copy?id=${id}&type=cmd`], { env, encoding: 'utf8', timeout: 20000 });
-      if (opened.status !== 0) throw new Error(`xdg-open failed: ${opened.stderr}`);
+      // Async: the daemon answering the click runs in this very process
+      await new Promise<void>((resolve, reject) =>
+        execFile('xdg-open', [`${urlScheme()}://copy?id=${id}&type=cmd`], { env, timeout: 20000 }, (err, _out, stderr) =>
+          err ? reject(new Error(`xdg-open failed (${err.message}): ${stderr}`)) : resolve()
+        )
+      );
       await waitFor(() => daemon.clipboard.last === 'echo linux', 15000);
     } finally {
       await daemon.stop();
