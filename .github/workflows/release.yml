@@ -107,7 +107,7 @@ jobs:
       contents: write
     steps:
       # Built and tested by the CI run above
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: clipcmd-*
           merge-multiple: true
