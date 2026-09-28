@@ -1,16 +1,22 @@
 version: 2
+# Monthly and grouped: every Dependabot PR runs the full CI, which costs
+# Actions minutes while the repository is private.
 updates:
   - package-ecosystem: npm
     directory: /cli
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 2
     groups:
       dev-dependencies:
         dependency-type: development
+      runtime-dependencies:
+        dependency-type: production
   - package-ecosystem: npm
     directory: /vscode-extension
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 2
     groups:
       dev-dependencies:
         dependency-type: development
@@ -21,3 +27,7 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      actions:
+        patterns: ['*']
