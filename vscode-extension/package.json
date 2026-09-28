@@ -1,9 +1,36 @@
 {
-  "name": "clipcmd-vscode",
-  "displayName": "clipcmd",
-  "description": "Copy command output from clipcmd buttons in VS Code terminals, and check the clipcmd daemon",
-  "version": "0.0.1",
-  "publisher": "local",
+  "name": "clipcmd",
+  "displayName": "clipcmd — Copy Command Output",
+  "description": "One-click [COPY OUTPUT] and [COPY BOTH] buttons for every command in VS Code's terminal, with the clipcmd CLI.",
+  "version": "1.0.0",
+  "publisher": "djain912",
+  "author": "Djain912",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#0f172a",
+    "theme": "dark"
+  },
+  "homepage": "https://github.com/Djain912/clipcmd#readme",
+  "bugs": {
+    "url": "https://github.com/Djain912/clipcmd/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Djain912/clipcmd.git",
+    "directory": "vscode-extension"
+  },
+  "keywords": [
+    "terminal",
+    "copy",
+    "clipboard",
+    "output",
+    "command",
+    "shell integration",
+    "powershell",
+    "bash",
+    "zsh"
+  ],
   "engines": {
     "vscode": "^1.93.0"
   },
@@ -20,18 +47,34 @@
         "command": "clipcmd.checkDaemon",
         "title": "Check Daemon",
         "category": "clipcmd"
+      },
+      {
+        "command": "clipcmd.startDaemon",
+        "title": "Start Daemon",
+        "category": "clipcmd"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "clipcmd",
+      "properties": {
+        "clipcmd.cliPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "Path to the `clipcmd` executable, used by **clipcmd: Start Daemon**. Leave empty to use `clipcmd` from `PATH`."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p .",
+    "compile": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\" && tsc -p .",
     "watch": "tsc -watch -p .",
     "pretest": "npm run compile",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "mocha --ui tdd \"out/test/unit/**/*.test.js\"",
     "test:integration": "node ./out/test/runIntegrationTests.js",
-    "package": "vsce package --no-dependencies --allow-missing-repository --skip-license"
+    "package": "vsce package --no-dependencies"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
