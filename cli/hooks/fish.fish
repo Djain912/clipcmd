@@ -153,11 +153,9 @@ if status is-interactive; and not set -q _clipcmd_installed
     # Output capture: continue this session inside `clipcmd shell` (which also
     # starts the daemon). 126: the wrapper could not start; carry on without it.
     if _clipcmd_want_autoshell
-        if status is-login
-            clipcmd shell fish --login
-        else
-            clipcmd shell fish
-        end
+        set -l login
+        status is-login; and set login --login
+        clipcmd shell fish $login
         set -l code $status
         test $code -eq 126; or exit $code
     end

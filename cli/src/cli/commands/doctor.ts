@@ -21,6 +21,7 @@ import {
 import { isPowerShell, SUPPORTED_SHELLS, SupportedShell } from '../../installer/shellDetector';
 import { findWindowsTerminalSettings, parseJsonc } from '../../installer/windowsTerminal';
 import { describePid, getDaemonState } from '../../shared/daemonClient';
+import { loadNodePty } from '../../shared/nodePty';
 import { isStoppedByUser } from './start';
 
 export type Level = 'ok' | 'warn' | 'fail' | 'info';
@@ -113,22 +114,7 @@ export async function runChecks(): Promise<Check[]> {
     }
   }
 
-  let pty = false;
-  try {
-    require('node-pty');
-    pty = true;
-  } catch {
-    // reported below
-  }
-  checks.push(
-    pty
-      ? { level: 'ok', title: 'Output capture available (node-pty)' }
-      : {
-          level: 'warn',
-          title: 'node-pty is missing: [COPY OUTPUT] only works in VS Code',
-          fix: 'Reinstall clipcmd (`npm install -g clipcmd`); on Linux this needs python3, make and a C++ compiler.',
-        }
-  );
+  checks.push(await checkPty());
 
   const scheme = urlScheme();
   if (isProtocolHandlerInstalled()) {
@@ -193,6 +179,45 @@ export async function runChecks(): Promise<Check[]> {
   );
 
   return checks;
+}
+
+interface MiniPty {
+  spawn(file: string, args: string[], options: object): { onExit(cb: () => void): void; kill(): void };
+}
+
+/** Output capture needs node-pty, and node-pty must be able to start a process. */
+async function checkPty(): Promise<Check> {
+  let pty: MiniPty;
+  try {
+    pty = loadNodePty<MiniPty>();
+  } catch {
+    return {
+      level: 'warn',
+      title: 'node-pty is missing: [COPY OUTPUT] only works in VS Code',
+      fix: 'Reinstall clipcmd (`npm install -g clipcmd`); on Linux this needs python3, make and a C++ compiler.',
+    };
+  }
+  try {
+    // node-pty on Windows mangles backslashes in the executable path
+    const child = pty.spawn(process.execPath.replace(/\\/g, '/'), ['-e', ''], { cols: 80, rows: 24, cwd: os.homedir(), env: process.env });
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        child.kill();
+        reject(new Error('the test process did not finish within 10s'));
+      }, 10000);
+      child.onExit(() => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+    return { level: 'ok', title: 'Output capture available (node-pty)' };
+  } catch (err) {
+    return {
+      level: 'warn',
+      title: `node-pty cannot start processes (${err instanceof Error ? err.message : String(err)}): [COPY OUTPUT] only works in VS Code`,
+      fix: 'Reinstall clipcmd (`npm install -g clipcmd`) as the user who runs it.',
+    };
+  }
 }
 
 export function formatChecks(checks: Check[]): string {

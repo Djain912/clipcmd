@@ -8,7 +8,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { writePortFile } from '../../src/config/portFile';
-import { findShell, makeTempDir, removeDir, REPO_ROOT, startTestDaemon, TestDaemon } from '../helpers';
+import { findShell, makeTempDir, removeDir, REPO_ROOT, runInTerminal, startTestDaemon, TestDaemon, tryLoadNodePty } from '../helpers';
+
+const pty = tryLoadNodePty();
+/** fish reads commands interactively (and fires its preexec events) only from a terminal. */
+const FISH_PROMPT = "function fish_prompt; printf 'READY> '; end\n";
 
 const SHELLS = [
   { name: 'zsh', bin: findShell('zsh'), hook: 'zsh.sh', args: ['-i'], rc: '.zshrc' },
@@ -16,7 +20,7 @@ const SHELLS = [
 ] as const;
 
 for (const shell of SHELLS) {
-  describe.skipIf(!shell.bin)(`${shell.name} hook (end to end)`, () => {
+  describe.skipIf(!shell.bin || (shell.name === 'fish' && !pty))(`${shell.name} hook (end to end)`, () => {
     let dir: string;
     let home: string;
     let daemon: TestDaemon;
@@ -28,7 +32,8 @@ for (const shell of SHELLS) {
       writePortFile(daemon.port, process.pid, path.join(dir, 'port'));
       const rc = path.join(home, shell.rc);
       fs.mkdirSync(path.dirname(rc), { recursive: true });
-      fs.writeFileSync(rc, fs.readFileSync(path.join(REPO_ROOT, 'hooks', shell.hook), 'utf8'));
+      const hook = fs.readFileSync(path.join(REPO_ROOT, 'hooks', shell.hook), 'utf8');
+      fs.writeFileSync(rc, shell.name === 'fish' ? FISH_PROMPT + hook : hook);
     });
     afterEach(async () => {
       await daemon.stop();
@@ -36,12 +41,14 @@ for (const shell of SHELLS) {
       removeDir(home);
     });
 
-    function run(script: string, env: Record<string, string> = {}): Promise<string> {
+    async function run(script: string, extra: Record<string, string> = {}): Promise<string> {
+      const env = { ...process.env, HOME: home, ZDOTDIR: home, XDG_CONFIG_HOME: path.join(home, '.config'), CLIPCMD_CONFIG_DIR: dir, ...extra } as Record<string, string>;
+      if (shell.name === 'fish') {
+        const input = [...script.split('\n').filter((line) => line !== ''), 'exit'];
+        return (await runInTerminal(shell.bin as string, [...shell.args], { cwd: home, env, input, ready: 'READY>' })).output;
+      }
       return new Promise((resolve, reject) => {
-        const child = spawn(shell.bin as string, [...shell.args], {
-          cwd: home,
-          env: { ...process.env, HOME: home, ZDOTDIR: home, XDG_CONFIG_HOME: path.join(home, '.config'), CLIPCMD_CONFIG_DIR: dir, ...env },
-        });
+        const child = spawn(shell.bin as string, [...shell.args], { cwd: home, env });
         let out = '';
         child.stdout.on('data', (d) => (out += d));
         child.stderr.on('data', (d) => (out += d));

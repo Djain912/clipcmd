@@ -3,7 +3,9 @@ import * as http from 'node:http';
 import * as net from 'node:net';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { Terminal } from '@xterm/headless';
 import { FileTailCapture } from '../src/daemon/capture';
+import { loadNodePty } from '../src/shared/nodePty';
 import type { ClipboardWriter } from '../src/daemon/clipboard';
 import { MultiSelectQueue } from '../src/daemon/multiSelectQueue';
 import { RingBuffer } from '../src/daemon/ringBuffer';
@@ -215,11 +217,66 @@ export function findVsCodeBashIntegration(): string | undefined {
 
 export function tryLoadNodePty(): typeof import('node-pty') | undefined {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('node-pty');
+    return loadNodePty<typeof import('node-pty')>();
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Answers the terminal queries a program sends (cursor position, device
+ * attributes, ...) the way a real terminal would, using a headless emulator
+ * fed with the program's output. fish 4 and PSReadLine wait for these replies
+ * on Linux and macOS. Not on Windows, where ConPTY sits in between.
+ */
+export function answerTerminalQueries(term: import('node-pty').IPty, cols: number, rows: number): () => void {
+  if (process.platform === 'win32') return () => undefined;
+  const emulator = new Terminal({ cols, rows, allowProposedApi: true });
+  const reply = emulator.onData((data) => term.write(data));
+  const feed = term.onData((data) => emulator.write(data));
+  return () => {
+    feed.dispose();
+    reply.dispose();
+    emulator.dispose();
+  };
+}
+
+export interface TerminalRun {
+  output: string;
+  code: number | undefined;
+}
+
+/**
+ * Runs a program in a pseudo-terminal backed by a headless terminal emulator
+ * that answers terminal queries, as a real terminal does (fish 4 waits for
+ * the replies before it reads commands). Types each line of `input` (after
+ * `ready` appears in the output, if given) and waits for the program to exit.
+ */
+export async function runInTerminal(
+  file: string,
+  args: string[],
+  options: { cwd: string; env: Record<string, string>; input?: string[]; ready?: string; timeoutMs?: number }
+): Promise<TerminalRun> {
+  const pty = tryLoadNodePty();
+  if (!pty) throw new Error('node-pty is not available');
+  const { cwd, env, input = [], ready, timeoutMs = 30000 } = options;
+  const cols = 120;
+  const rows = 30;
+  const term = pty.spawn(file, args, { name: 'xterm-256color', cols, rows, cwd, env });
+  const stopAnswering = answerTerminalQueries(term, cols, rows);
+  let output = '';
+  let code: number | undefined;
+  term.onData((data) => (output += data));
+  term.onExit((e) => (code = e.exitCode));
+  try {
+    if (ready) await waitFor(() => code !== undefined || stripAnsi(output).includes(ready), timeoutMs);
+    for (const line of input) if (code === undefined) term.write(`${line}\r`);
+    await waitFor(() => code !== undefined, timeoutMs);
+  } finally {
+    if (code === undefined) term.kill();
+    stopAnswering();
+  }
+  return { output, code };
 }
 
 /** Strips OSC 8 links and other escape sequences for readable assertions. */

@@ -18,6 +18,7 @@ import { randomUUID } from 'node:crypto';
 import { Terminal } from '@xterm/headless';
 import type { IMarker } from '@xterm/headless';
 import { getSessionsDir } from '../../config/paths';
+import { loadNodePty } from '../../shared/nodePty';
 import { ensureDaemon, isStoppedByUser } from './start';
 import { readPortFile } from '../../config/portFile';
 import {
@@ -66,9 +67,7 @@ export interface ShellDeps {
 }
 
 const defaultDeps = (): ShellDeps => ({
-  // Dynamic require so node-pty remains a truly optional runtime dependency.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  loadPty: () => require('node-pty') as PtyModule,
+  loadPty: () => loadNodePty<PtyModule>(),
   stdin: process.stdin,
   stdout: process.stdout,
   env: process.env,

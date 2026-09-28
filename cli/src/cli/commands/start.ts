@@ -100,7 +100,11 @@ export async function run(args: string[]): Promise<number> {
   if (args.includes('--auto')) {
     if (isStoppedByUser()) return 0;
   } else {
-    fs.rmSync(getStoppedMarker(), { force: true });
+    try {
+      fs.rmSync(getStoppedMarker(), { force: true });
+    } catch {
+      // Unusable config directory: starting the daemon reports it
+    }
   }
   const result = await ensureDaemon();
   switch (result.status) {

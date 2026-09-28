@@ -10,6 +10,7 @@ import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { writePortFile } from '../../src/config/portFile';
 import {
+  answerTerminalQueries,
   findVsCodeBashIntegration,
   freePort,
   makeTempDir,
@@ -39,9 +40,12 @@ function available(exe: string): boolean {
   return r.status === 0;
 }
 
+// node-pty on Windows needs the .exe
+const PWSH = process.env.CLIPCMD_TEST_PWSH || (process.platform === 'win32' ? 'pwsh.exe' : 'pwsh');
+
 const EDITIONS = [
   { name: 'Windows PowerShell 5.1', exe: 'powershell.exe', ok: process.platform === 'win32' && available('powershell.exe') },
-  { name: 'PowerShell 7', exe: process.env.CLIPCMD_TEST_PWSH || 'pwsh', ok: available(process.env.CLIPCMD_TEST_PWSH || 'pwsh') },
+  { name: 'PowerShell 7', exe: PWSH, ok: available(PWSH) },
 ];
 
 const VSCODE_PS_SCRIPT = (() => {
@@ -93,6 +97,7 @@ for (const edition of EDITIONS) {
       term.onData((d) => (screen += d));
       let exited = false;
       term.onExit(() => (exited = true));
+      const stopAnswering = answerTerminalQueries(term, 200, 50);
       const prompts = () => (stripAnsi(screen).match(PROMPT_RE) ?? []).length;
 
       const ms: number[] = [];
@@ -109,6 +114,7 @@ for (const edition of EDITIONS) {
         await waitFor(() => exited, 15000);
       } finally {
         if (!exited) term.kill();
+        stopAnswering();
       }
       return { screen, ms };
     }
@@ -124,7 +130,9 @@ for (const edition of EDITIONS) {
         exitWith(7),
         exitWith(7),
         exitWith(0),
-        "Write-Output 'h\u00e9llo \u20ac 100% & a=b'",
+        // (Only characters every console code page has: Windows PowerShell 5.1
+        // receives typed text in the console's code page, e.g. 437 without \u20ac.)
+        "Write-Output 'h\u00e9llo w\u00f6rld 100% & a=b'",
       ]);
       expect(blocks()).toEqual([
         ['Write-Output hello', 0],
@@ -133,7 +141,7 @@ for (const edition of EDITIONS) {
         [exitWith(7), 7],
         [exitWith(7), 7],
         [exitWith(0), 0],
-        ["Write-Output 'h\u00e9llo \u20ac 100% & a=b'", 0],
+        ["Write-Output 'h\u00e9llo w\u00f6rld 100% & a=b'", 0],
       ]);
       expect(buttonCount(screen)).toBe(7);
       // macOS: the temp dir is reached through a symlink (/var -> /private/var)
@@ -183,6 +191,7 @@ for (const edition of EDITIONS) {
       term.onData((d) => (screen += d));
       let exited = false;
       term.onExit(() => (exited = true));
+      const stopAnswering = answerTerminalQueries(term, 200, 50);
       try {
         await waitFor(() => /PS [^\r\n]*>/.test(stripAnsi(screen)), 30000);
         term.write('Write-Output default\r');
@@ -192,6 +201,7 @@ for (const edition of EDITIONS) {
         await waitFor(() => exited, 15000);
       } finally {
         if (!exited) term.kill();
+        stopAnswering();
       }
       expect(blocks()).toEqual([['Write-Output default', 0]]);
     }, 120000);

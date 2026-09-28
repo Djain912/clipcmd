@@ -67,8 +67,12 @@ export async function stopDaemon(): Promise<StopResult> {
 export async function run(_args: string[]): Promise<number> {
   // Written first, so a shell opening meanwhile does not start it again
   const marker = getStoppedMarker();
-  fs.mkdirSync(path.dirname(marker), { recursive: true });
-  fs.writeFileSync(marker, '');
+  try {
+    fs.mkdirSync(path.dirname(marker), { recursive: true });
+    fs.writeFileSync(marker, '');
+  } catch (err) {
+    console.error(`Could not write ${marker} (${err instanceof Error ? err.message : String(err)}); new shells may start the daemon again.`);
+  }
 
   const result = await stopDaemon();
   switch (result.status) {

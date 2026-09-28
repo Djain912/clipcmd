@@ -13,12 +13,14 @@ import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { writePortFile } from '../../src/config/portFile';
 import {
+  answerTerminalQueries,
   findBash,
   findShell,
   freePort,
   makeTempDir,
   removeDir,
   REPO_ROOT,
+  runInTerminal,
   startTestDaemon,
   stripAnsi,
   TestDaemon,
@@ -116,10 +118,17 @@ for (const shell of POSIX_SHELLS) {
   describe.skipIf(!shell.bin)(`${shell.name} hook: daemon auto-start and auto-shell`, () => {
     const HOOK = fs.readFileSync(path.join(REPO_ROOT, 'hooks', shell.hook), 'utf8');
 
+    // fish only reads commands interactively (firing its events) from a
+    // terminal. In a terminal, commands are typed once a known prompt shows
+    // (zsh drops what was typed before).
+    const isFish = shell.name === 'fish';
+    const READY = 'READY>';
+    const PROMPT = isFish ? "function fish_prompt; printf 'READY> '; end\n" : "PS1='READY> '\n";
+
     function writeRc(file: string = shell.rc): void {
       const rc = path.join(home, file);
       fs.mkdirSync(path.dirname(rc), { recursive: true });
-      fs.writeFileSync(rc, HOOK);
+      fs.writeFileSync(rc, PROMPT + HOOK);
     }
 
     function env(extra: Record<string, string | undefined> = {}): Record<string, string> {
@@ -137,9 +146,21 @@ for (const shell of POSIX_SHELLS) {
     const args = (login = false) =>
       shell.name === 'bash' ? (login ? ['-l', '-i'] : ['--rcfile', path.join(home, shell.rc), '-i']) : login ? ['-l', '-i'] : ['-i'];
 
-    /** Interactive shell reading commands from a pipe (no TTY). */
-    function run(script: string, extra: Record<string, string | undefined> = {}): Promise<{ out: string; code: number | null }> {
+    /**
+     * Interactive shell running `script`: from a pipe (no TTY), except fish,
+     * which gets a terminal unless `tty` is false.
+     */
+    async function run(
+      script: string,
+      extra: Record<string, string | undefined> = {},
+      { tty = isFish }: { tty?: boolean } = {}
+    ): Promise<{ out: string; code: number | null | undefined }> {
       writeRc();
+      if (tty) {
+        const input = [...script.split('\n').filter((line) => line !== ''), 'exit'];
+        const { output, code } = await runInTerminal(shell.bin as string, args(), { cwd: home, env: env(extra), input, ready: READY });
+        return { out: stripAnsi(output), code };
+      }
       return new Promise((resolve, reject) => {
         const child = spawn(shell.bin as string, args(), { cwd: home, env: env(extra) });
         let out = '';
@@ -213,31 +234,26 @@ for (const shell of POSIX_SHELLS) {
       registerDaemon();
       await run('true', { CLIPCMD_AUTOSHELL: '1', CLIPCMD_SESSION: 'already-wrapped', CLIPCMD_FAKE_EXIT: '5' });
       await run('true', { CLIPCMD_AUTOSHELL: '1', TERM_PROGRAM: 'vscode', CLIPCMD_FAKE_EXIT: '5' });
-      await run('true', { CLIPCMD_AUTOSHELL: undefined, CLIPCMD_FAKE_EXIT: '5' }); // stdin is a pipe here
+      await run('true', { CLIPCMD_AUTOSHELL: undefined, CLIPCMD_FAKE_EXIT: '5' }, { tty: false });
       expect(calls()).toEqual([]);
     });
 
     describe.skipIf(!pty)('in a terminal', () => {
-      /** Starts the shell in a pseudo-terminal and types `exit 3` right away. */
-      async function runInTerminal(extra: Record<string, string | undefined>, login = false) {
-        const term = pty!.spawn(shell.bin as string, args(login), { name: 'xterm-256color', cols: 120, rows: 30, cwd: home, env: env(extra) });
-        let screen = '';
-        let exitCode: number | undefined;
-        term.onData((d) => (screen += d));
-        term.onExit((e) => (exitCode = e.exitCode));
-        term.write('exit 3\r');
-        try {
-          await waitFor(() => exitCode !== undefined, 30000);
-        } finally {
-          if (exitCode === undefined) term.kill();
-        }
-        return { code: exitCode, screen: stripAnsi(screen) };
+      /** Starts the shell in a pseudo-terminal and types `exit 3`. */
+      async function startInTerminal(extra: Record<string, string | undefined>, login = false) {
+        const { output, code } = await runInTerminal(shell.bin as string, args(login), {
+          cwd: home,
+          env: env(extra),
+          input: ['exit 3'],
+          ready: READY,
+        });
+        return { code, screen: stripAnsi(output) };
       }
 
       it('wraps interactive sessions by default, and exits with the wrapper', async () => {
         registerDaemon();
         writeRc();
-        const { code } = await runInTerminal({ CLIPCMD_AUTOSHELL: undefined, CLIPCMD_FAKE_EXIT: '5' });
+        const { code } = await startInTerminal({ CLIPCMD_AUTOSHELL: undefined, CLIPCMD_FAKE_EXIT: '5' });
         expect(calls()).toEqual([`shell ${shell.name}`]);
         expect(code).toBe(5);
       });
@@ -245,7 +261,7 @@ for (const shell of POSIX_SHELLS) {
       it('passes --login for login shells', async () => {
         registerDaemon();
         writeRc(shell.loginRc);
-        await runInTerminal({ CLIPCMD_AUTOSHELL: undefined, CLIPCMD_FAKE_EXIT: '5' }, true);
+        await startInTerminal({ CLIPCMD_AUTOSHELL: undefined, CLIPCMD_FAKE_EXIT: '5' }, true);
         expect(calls()).toEqual([`shell ${shell.name} --login`]);
       });
 
@@ -253,9 +269,9 @@ for (const shell of POSIX_SHELLS) {
         registerDaemon();
         writeRc();
         fs.writeFileSync(path.join(dir, 'config.json'), '{\n  "port": 9666,\n  "autoShell": false\n}\n');
-        expect((await runInTerminal({ CLIPCMD_AUTOSHELL: undefined, CLIPCMD_FAKE_EXIT: '5' })).code).toBe(3);
+        expect((await startInTerminal({ CLIPCMD_AUTOSHELL: undefined, CLIPCMD_FAKE_EXIT: '5' })).code).toBe(3);
         fs.rmSync(path.join(dir, 'config.json'));
-        const ssh = await runInTerminal({ CLIPCMD_AUTOSHELL: undefined, SSH_CONNECTION: '10.0.0.1 5555 10.0.0.2 22', CLIPCMD_FAKE_EXIT: '5' });
+        const ssh = await startInTerminal({ CLIPCMD_AUTOSHELL: undefined, SSH_CONNECTION: '10.0.0.1 5555 10.0.0.2 22', CLIPCMD_FAKE_EXIT: '5' });
         expect(ssh.code).toBe(3);
         expect(calls()).toEqual([]);
       });
@@ -265,7 +281,10 @@ for (const shell of POSIX_SHELLS) {
 
 // ------------------------------------------------------------------ PowerShell
 
-const PS_EXE = [process.platform === 'win32' ? 'powershell.exe' : undefined, process.env.CLIPCMD_TEST_PWSH || 'pwsh'].find((exe) => {
+const PS_EXE = [
+  process.platform === 'win32' ? 'powershell.exe' : undefined,
+  process.env.CLIPCMD_TEST_PWSH || (process.platform === 'win32' ? 'pwsh.exe' : 'pwsh'),
+].find((exe) => {
   if (!exe) return false;
   const r = spawnSync(exe, ['-NoLogo', '-NoProfile', '-Command', '0'], { windowsHide: true, timeout: 30000 });
   return r.status === 0;
@@ -290,6 +309,7 @@ describe.skipIf(!pty || !PS_EXE)(`PowerShell hook: daemon auto-start (${PS_EXE})
     let exited = false;
     term.onData((d) => (screen += d));
     term.onExit(() => (exited = true));
+    const stopAnswering = answerTerminalQueries(term, 150, 40);
     const prompts = () => stripAnsi(screen).split('READY>').length - 1;
     try {
       await waitFor(() => prompts() >= 1, 30000);
@@ -302,6 +322,7 @@ describe.skipIf(!pty || !PS_EXE)(`PowerShell hook: daemon auto-start (${PS_EXE})
       await waitFor(() => exited, 15000);
     } finally {
       if (!exited) term.kill();
+      stopAnswering();
     }
   }
 

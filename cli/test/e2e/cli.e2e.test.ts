@@ -93,6 +93,8 @@ afterEach(async () => {
     } catch {
       // gone
     }
+    // It logs its shutdown into configDir; removing the directory meanwhile fails (ENOTEMPTY)
+    await waitFor(() => !alive(info.pid), 5000).catch(() => undefined);
   }
   removeDir(configDir);
   removeDir(home);

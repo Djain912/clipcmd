@@ -79,12 +79,17 @@ _clipcmd_note_curl_status() {
 # (Not curl --data-urlencode: under Git Bash, native curl.exe receives its
 # arguments re-encoded in the Windows ANSI code page, corrupting non-ASCII text.)
 _clipcmd_urlencode() {
-  local LC_ALL=C s="$1" out="" c i
+  local LC_ALL=C s="$1" out="" c i n
   for (( i = 0; i < ${#s}; i++ )); do
     c="${s:i:1}"
     case "$c" in
       [a-zA-Z0-9.~_-]) out+="$c" ;;
-      *) printf -v c '%%%02X' "'$c"; out+="$c" ;;
+      *)
+        printf -v n '%d' "'$c"
+        # & 255: bash 3.2 (macOS) sign-extends bytes >= 0x80
+        printf -v c '%%%02X' $(( n & 255 ))
+        out+="$c"
+        ;;
     esac
   done
   _clipcmd_enc="$out"
@@ -280,8 +285,11 @@ if [[ $- == *i* && -z "${_clipcmd_installed:-}" ]]; then
     fi
     trap '_clipcmd_debug_trap "$_"' DEBUG
 
-    # precmd first (so $? is the command's status), arm last
-    if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == "declare -a"* ]]; then
+    # precmd first (so $? is the command's status), arm last. An array
+    # PROMPT_COMMAND only runs as a list from bash 5.1 on; older versions run
+    # just its first element, so there it is used as a string.
+    if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == "declare -a"* ]] &&
+       (( BASH_VERSINFO[0] > 5 || (BASH_VERSINFO[0] == 5 && BASH_VERSINFO[1] >= 1) )); then
       PROMPT_COMMAND=(_clipcmd_precmd "${PROMPT_COMMAND[@]}" _clipcmd_arm)
     else
       PROMPT_COMMAND="_clipcmd_precmd${PROMPT_COMMAND:+
