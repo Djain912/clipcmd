@@ -13,6 +13,7 @@ import {
   answerTerminalQueries,
   findVsCodeBashIntegration,
   freePort,
+  PS_TEST_PRELUDE,
   makeTempDir,
   removeDir,
   REPO_ROOT,
@@ -83,7 +84,7 @@ for (const edition of EDITIONS) {
       options: { env?: Record<string, string>; vscode?: boolean } = {}
     ): Promise<{ screen: string; ms: number[] }> {
       const profileFile = path.join(home, 'profile.ps1');
-      fs.writeFileSync(profileFile, profile, 'latin1');
+      fs.writeFileSync(profileFile, PS_TEST_PRELUDE + profile, 'latin1');
       let script = `. '${profileFile}'`;
       if (options.vscode) script += `; . '${VSCODE_PS_SCRIPT}'`;
 
@@ -183,7 +184,7 @@ for (const edition of EDITIONS) {
     it('works with the default prompt too', async () => {
       // PSReadLine's default prompt is "PS <path>> "; count those instead
       const profileFile = path.join(home, 'profile.ps1');
-      fs.writeFileSync(profileFile, HOOK, 'latin1');
+      fs.writeFileSync(profileFile, PS_TEST_PRELUDE + HOOK, 'latin1');
       const term = pty!.spawn(edition.exe, ['-NoLogo', '-NoProfile', '-NoExit', '-Command', `. '${profileFile}'`], {
         cols: 200,
         rows: 50,
@@ -254,7 +255,7 @@ for (const edition of EDITIONS) {
 
     it('does nothing in non-interactive PowerShell (scripts, -Command)', () => {
       const profileFile = path.join(home, 'profile.ps1');
-      fs.writeFileSync(profileFile, HOOK, 'latin1');
+      fs.writeFileSync(profileFile, PS_TEST_PRELUDE + HOOK, 'latin1');
       const r = spawnSync(edition.exe, ['-NoLogo', '-NoProfile', '-Command', `. '${profileFile}'; 'x'; exit 0`], {
         encoding: 'utf8',
         env: { ...process.env, CLIPCMD_CONFIG_DIR: dir },

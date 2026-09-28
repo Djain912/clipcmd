@@ -68,7 +68,7 @@ for (const shell of SHELLS) {
         ['false', 1],
         ["echo '100% & é'", 0],
       ]);
-      expect(out.split('[COPY CMD]').length - 1).toBe(3);
+      expect(out.split('[COPY CMD]').length - 1).toBe(shell.name === 'fish' ? 4 : 3); // fish: + the `exit`
     });
 
     it('stays silent without a daemon', async () => {

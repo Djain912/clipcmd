@@ -281,6 +281,15 @@ export async function runInTerminal(
   return { output, code };
 }
 
+/**
+ * Profile prelude for every PowerShell a test starts: PSReadLine must not
+ * save the test's commands into the user's real history file, and its
+ * history-based inline predictions (PSReadLine 2.1+) must not redraw the line.
+ */
+export const PS_TEST_PRELUDE =
+  'Set-PSReadLineOption -HistorySaveStyle SaveNothing -ErrorAction Ignore\n' +
+  'try { Set-PSReadLineOption -PredictionSource None -ErrorAction Stop } catch { }\n';
+
 /** Adds the end of what a terminal showed to an error (to see why a wait timed out). */
 export function withScreen(err: unknown, screen: string): Error {
   const tail = stripAnsi(screen).slice(-800);

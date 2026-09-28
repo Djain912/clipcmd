@@ -89,6 +89,24 @@ async function setCliPath(value: string | undefined): Promise<void> {
   await vscode.workspace.getConfiguration('clipcmd').update('cliPath', value, vscode.ConfigurationTarget.Global);
 }
 
+/**
+ * The real-terminal test types into the user's PowerShell (VS Code only
+ * injects its shell integration into standard launches, so the profile and
+ * PSReadLine history cannot be avoided): take the typed line back out.
+ */
+function removeFromPowerShellHistory(line: string): void {
+  if (process.platform !== 'win32' || !process.env.APPDATA) return;
+  const file = path.join(process.env.APPDATA, 'Microsoft', 'Windows', 'PowerShell', 'PSReadLine', 'ConsoleHost_history.txt');
+  try {
+    const text = fs.readFileSync(file, 'utf8');
+    const lines = text.split(/\r?\n/);
+    const kept = lines.filter((l) => l !== line);
+    if (kept.length !== lines.length) fs.writeFileSync(file, kept.join('\r\n'), 'utf8');
+  } catch {
+    // no history file
+  }
+}
+
 /** Shell and command for the real-terminal test on this platform. */
 function terminalShell(): { shellPath: string; command: string } {
   if (process.platform === 'win32') {
@@ -187,7 +205,13 @@ suite('clipcmd extension (in VS Code)', () => {
     const terminal = vscode.window.createTerminal({
       name: 'clipcmd-test',
       shellPath,
-      env: { CLIPCMD_CONFIG_DIR: path.dirname(portFile()), CLIPCMD_AUTOSHELL: '0', CLIPCMD_AUTOSTART: '0' },
+      env: {
+        CLIPCMD_CONFIG_DIR: path.dirname(portFile()),
+        CLIPCMD_AUTOSHELL: '0',
+        CLIPCMD_AUTOSTART: '0',
+        // bash / zsh: keep the test command out of the user's history
+        HISTFILE: path.join(scratch, 'history'),
+      },
     });
     try {
       const integration = await new Promise<vscode.TerminalShellIntegration>((resolve, reject) => {
@@ -213,6 +237,7 @@ suite('clipcmd extension (in VS Code)', () => {
       assert.equal(output.body, 'progress 100%\nsecond line');
     } finally {
       terminal.dispose();
+      removeFromPowerShellHistory(command);
     }
   });
 

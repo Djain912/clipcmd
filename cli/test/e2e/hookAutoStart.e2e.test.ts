@@ -18,6 +18,7 @@ import {
   findShell,
   freePort,
   makeTempDir,
+  PS_TEST_PRELUDE,
   removeDir,
   REPO_ROOT,
   runInTerminal,
@@ -303,7 +304,7 @@ describe.skipIf(!pty || !PS_EXE)(`PowerShell hook: daemon auto-start (${PS_EXE})
   /** Starts PowerShell with the hook, runs `commands`, and exits. */
   async function runPs(commands: string[], extra: Record<string, string | undefined> = {}): Promise<void> {
     const profile = path.join(home, 'profile.ps1');
-    fs.writeFileSync(profile, PROMPT + HOOK, 'latin1');
+    fs.writeFileSync(profile, PS_TEST_PRELUDE + PROMPT + HOOK, 'latin1');
     const term = pty!.spawn(PS_EXE!, ['-NoLogo', '-NoProfile', '-NoExit', '-Command', `. '${profile}'`], {
       name: 'xterm-256color',
       cols: 150,

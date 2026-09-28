@@ -24,6 +24,7 @@ import { parseJsonc } from '../../src/installer/windowsTerminal';
 import {
   BIN,
   makeTempDir,
+  PS_TEST_PRELUDE,
   removeDir,
   REPO_ROOT,
   startTestDaemon,
@@ -208,7 +209,7 @@ describe.skipIf(!onWindows)('Windows integration (end to end)', () => {
 
     function startPs(profile: string, env: Record<string, string>) {
       const profileFile = path.join(dir, 'profile.ps1');
-      fs.writeFileSync(profileFile, profile, 'latin1');
+      fs.writeFileSync(profileFile, PS_TEST_PRELUDE + profile, 'latin1');
       const term = pty!.spawn('powershell.exe', ['-NoLogo', '-NoProfile', '-NoExit', '-Command', `. '${profileFile}'`], {
         cols: 150,
         rows: 40,
@@ -284,7 +285,7 @@ describe.skipIf(!onWindows)('Windows integration (end to end)', () => {
       const profile = path.join(dir, 'profile.ps1');
       fs.writeFileSync(
         profile,
-        `function global:prompt { 'READY> ' }\n${fs.readFileSync(path.join(REPO_ROOT, 'hooks', 'powershell.ps1'), 'latin1')}`,
+        `${PS_TEST_PRELUDE}function global:prompt { 'READY> ' }\n${fs.readFileSync(path.join(REPO_ROOT, 'hooks', 'powershell.ps1'), 'latin1')}`,
         'latin1'
       );
       // clipcmd shell runs SHELL; this starts PowerShell with the test profile instead of the user's
