@@ -28,6 +28,14 @@ export function getLogFile(): string {
   return path.join(getConfigDir(), 'daemon.log');
 }
 
+/**
+ * Present after `clipcmd stop`: shells and `clipcmd shell` then do not start
+ * the daemon automatically until `clipcmd start` is run again.
+ */
+export function getStoppedMarker(): string {
+  return path.join(getConfigDir(), 'stopped');
+}
+
 /** Directory holding one output capture file per shell session (see capture.ts). */
 export function getSessionsDir(): string {
   return path.join(getConfigDir(), 'sessions');

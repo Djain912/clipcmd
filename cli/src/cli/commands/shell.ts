@@ -18,6 +18,7 @@ import { randomUUID } from 'node:crypto';
 import { Terminal } from '@xterm/headless';
 import type { IMarker } from '@xterm/headless';
 import { getSessionsDir } from '../../config/paths';
+import { ensureDaemon, isStoppedByUser } from './start';
 import { readPortFile } from '../../config/portFile';
 import {
   getWindowsAncestorNames,
@@ -60,6 +61,8 @@ export interface ShellDeps {
   ancestors: () => string[];
   /** Delivers a finished command's output to the daemon. */
   sendOutput: (sessionId: string, seq: number, text: string) => void;
+  /** Starts the daemon if needed, so no `clipcmd start` is required after a reboot. */
+  ensureDaemon: () => Promise<unknown>;
 }
 
 const defaultDeps = (): ShellDeps => ({
@@ -73,6 +76,7 @@ const defaultDeps = (): ShellDeps => ({
   cwd: process.cwd(),
   ancestors: getWindowsAncestorNames,
   sendOutput: postOutput,
+  ensureDaemon: async () => (isStoppedByUser() ? undefined : ensureDaemon(3000)),
 });
 
 /**
@@ -100,9 +104,14 @@ export function resolveShell(env: NodeJS.ProcessEnv, platform: NodeJS.Platform, 
   return env.SHELL || '/bin/sh';
 }
 
-/** Arguments for the wrapped shell: PowerShell already showed its banner in the outer console. */
-export function shellArgs(file: string): string[] {
-  return parseShell(file) === 'powershell' || parseShell(file) === 'pwsh' ? ['-NoLogo'] : [];
+/**
+ * Arguments for the wrapped shell: PowerShell already showed its banner in the
+ * outer console; `login` starts a login shell, like the one being replaced.
+ */
+export function shellArgs(file: string, login = false): string[] {
+  const shell = parseShell(file);
+  if (shell === 'powershell' || shell === 'pwsh') return ['-NoLogo'];
+  return login && shell ? ['-l'] : [];
 }
 
 /** The button line the hooks print after each command (see daemon/osc8.ts). */
@@ -283,11 +292,13 @@ export function postOutput(sessionId: string, seq: number, text: string): void {
 const MARKER_RE = new RegExp(`\\x1b\\]${MARKER_OSC};clipcmd;[^\\x07\\x1b]*(?:\\x07|\\x1b\\\\)`, 'g');
 
 export async function run(args: string[], deps: ShellDeps = defaultDeps()): Promise<number> {
+  const login = args.includes('--login');
+  const shellArg = args.find((arg) => arg !== '--login');
   let requested: SupportedShell | undefined;
-  if (args[0] !== undefined) {
-    requested = parseShell(args[0]);
+  if (shellArg !== undefined) {
+    requested = parseShell(shellArg);
     if (!requested) {
-      console.error(new UnsupportedShellError(args[0]).message);
+      console.error(new UnsupportedShellError(shellArg).message);
       return EXIT_CANNOT_START;
     }
   }
@@ -308,6 +319,14 @@ export async function run(args: string[], deps: ShellDeps = defaultDeps()): Prom
   if (!deps.stdin.isTTY || typeof deps.stdin.setRawMode !== 'function') {
     console.error('clipcmd shell requires an interactive terminal (stdin is not a TTY).');
     return EXIT_CANNOT_START;
+  }
+
+  // The hooks need a daemon; start one if this is the first shell since boot.
+  // A failure is not fatal: the shell still works, just without buttons.
+  try {
+    await deps.ensureDaemon();
+  } catch {
+    // ignore
   }
 
   // The hooks inside the wrapped shell report this id as `sid`. (The shell's
@@ -334,7 +353,7 @@ export async function run(args: string[], deps: ShellDeps = defaultDeps()): Prom
     const detected =
       requested ?? (deps.platform === 'win32' && !deps.env.SHELL ? pickShellFromAncestors(deps.ancestors()) : undefined);
     const file = resolveShell(deps.env, deps.platform, detected);
-    pty = nodePty.spawn(file, shellArgs(file), { name: 'xterm-256color', cols, rows, cwd: deps.cwd, env });
+    pty = nodePty.spawn(file, shellArgs(file, login), { name: 'xterm-256color', cols, rows, cwd: deps.cwd, env });
   } catch (err) {
     fs.rmSync(sessionFile, { force: true });
     console.error(`Failed to start shell: ${err instanceof Error ? err.message : String(err)}`);

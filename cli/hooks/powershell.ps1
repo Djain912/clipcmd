@@ -18,6 +18,8 @@ if ($ExecutionContext.SessionState.LanguageMode -eq 'FullLanguage' -and
   $global:__ClipcmdState = @{
     PortFile         = Join-Path $__clipcmdDir 'port'
     ConfigFile       = Join-Path $__clipcmdDir 'config.json'
+    StoppedFile      = Join-Path $__clipcmdDir 'stopped'
+    AutoStartAt      = [datetime]::MinValue
     # `clipcmd shell` sets CLIPCMD_SESSION; it captures this session's output
     Session          = if ($env:CLIPCMD_SESSION) { $env:CLIPCMD_SESSION } else { "$PID" }
     InClipcmdShell   = [bool]$env:CLIPCMD_SESSION
@@ -35,9 +37,36 @@ if ($ExecutionContext.SessionState.LanguageMode -eq 'FullLanguage' -and
   }
   Remove-Variable __clipcmdDir
 
+  # Starts the daemon in the background (at most every 30 seconds), e.g. in the
+  # first shell after a reboot. `clipcmd start --auto` does nothing after
+  # `clipcmd stop`. Returns $true if it started one.
+  function global:__Clipcmd-AutoStart {
+    Set-StrictMode -Off
+    $state = $global:__ClipcmdState
+    if ([datetime]::UtcNow -lt $state.AutoStartAt -or $env:CLIPCMD_AUTOSTART -eq '0' -or
+        [System.IO.File]::Exists($state.StoppedFile)) { return $false }
+    $state.AutoStartAt = [datetime]::UtcNow.AddSeconds(30)
+    try {
+      # The npm shim: clipcmd.cmd on Windows (hidden, so no console flashes up)
+      $cli = Get-Command clipcmd -CommandType Application -ErrorAction Ignore | Select-Object -First 1
+      if (-not $cli) { return $false }
+      $info = New-Object System.Diagnostics.ProcessStartInfo
+      $info.FileName = $cli.Source
+      $info.Arguments = 'start --auto --quiet'
+      $info.UseShellExecute = $false
+      $info.CreateNoWindow = $true
+      $info.RedirectStandardOutput = $true
+      $info.RedirectStandardError = $true
+      [System.Diagnostics.Process]::Start($info).Dispose()
+      return $true
+    } catch {
+      return $false
+    }
+  }
+
   # GET http://127.0.0.1:<port><PathAndQuery>. Returns the body, or $null on
-  # any failure. Never throws. Connection failures back off for 30 seconds so
-  # a dead daemon does not delay every command by the timeout.
+  # any failure. Never throws. A missing daemon is started; meanwhile
+  # connection failures back off, so they do not delay every command.
   function global:__Clipcmd-Request([string]$PathAndQuery) {
     Set-StrictMode -Off
     $state = $global:__ClipcmdState
@@ -45,6 +74,7 @@ if ($ExecutionContext.SessionState.LanguageMode -eq 'FullLanguage' -and
     try {
       $match = [regex]::Match([System.IO.File]::ReadAllText($state.PortFile), '^\s*(\d{1,5})(?::\d+)?\s*$')
     } catch {
+      $null = __Clipcmd-AutoStart
       return $null
     }
     if (-not $match.Success) { return $null }
@@ -66,7 +96,10 @@ if ($ExecutionContext.SessionState.LanguageMode -eq 'FullLanguage' -and
       while ($err -and -not ($err -is [System.Net.WebException])) { $err = $err.InnerException }
       if ($err -and ($err.Status -eq [System.Net.WebExceptionStatus]::ConnectFailure -or
                      $err.Status -eq [System.Net.WebExceptionStatus]::Timeout)) {
-        $state.RetryAt = [datetime]::UtcNow.AddSeconds(30)
+        $null = __Clipcmd-AutoStart
+        # Just started (AutoStartAt is 30s after that): try again soon
+        $starting = $state.AutoStartAt -gt [datetime]::UtcNow.AddSeconds(20)
+        $state.RetryAt = [datetime]::UtcNow.AddSeconds($(if ($starting) { 1 } else { 30 }))
       }
       return $null
     }
@@ -191,7 +224,7 @@ if ($ExecutionContext.SessionState.LanguageMode -eq 'FullLanguage' -and
   $__clipcmdAutoShell = -not $env:CLIPCMD_SESSION -and $env:TERM_PROGRAM -ne 'vscode' -and
                         $env:CLIPCMD_AUTOSHELL -ne '0' -and
                         ($env:CLIPCMD_AUTOSHELL -eq '1' -or (__Clipcmd-IsPlainInteractive))
-  if ($__clipcmdAutoShell -and (Test-Path $global:__ClipcmdState.ConfigFile)) {
+  if ($__clipcmdAutoShell -and $env:CLIPCMD_AUTOSHELL -ne '1' -and (Test-Path $global:__ClipcmdState.ConfigFile)) {
     try {
       $__clipcmdConfig = [System.IO.File]::ReadAllText($global:__ClipcmdState.ConfigFile) | ConvertFrom-Json
       if ($__clipcmdConfig.autoShell -eq $false) { $__clipcmdAutoShell = $false }
@@ -208,6 +241,19 @@ if ($ExecutionContext.SessionState.LanguageMode -eq 'FullLanguage' -and
     }
   }
   Remove-Variable __clipcmdAutoShell, __clipcmdCli, __clipcmdEdition -ErrorAction Ignore
+
+  # Start the daemon now unless it is registered and alive (a port file left
+  # over from before a reboot names a dead process), so the first command
+  # already gets buttons.
+  try {
+    $__clipcmdMatch = [regex]::Match([System.IO.File]::ReadAllText($global:__ClipcmdState.PortFile), ':(\d+)\s*$')
+    if ($__clipcmdMatch.Success -and -not (Get-Process -Id ([int]$__clipcmdMatch.Groups[1].Value) -ErrorAction Ignore)) {
+      $null = __Clipcmd-AutoStart
+    }
+  } catch {
+    $null = __Clipcmd-AutoStart
+  }
+  Remove-Variable __clipcmdMatch -ErrorAction Ignore
 
   __Clipcmd-WrapPrompt
 }

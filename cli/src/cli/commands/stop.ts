@@ -1,8 +1,13 @@
 /**
  * `clipcmd stop` command
- * Sends a shutdown request to the daemon and waits for it to exit.
+ * Sends a shutdown request to the daemon and waits for it to exit. The
+ * daemon then stays off — new shells do not restart it — until
+ * `clipcmd start` is run again.
  * Requirements: 1.4
  */
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { getStoppedMarker } from '../../config/paths';
 import { isProcessAlive, readPortFile, removePortFileIfOwned } from '../../config/portFile';
 import { describePid, getDaemonState, httpGet } from '../../shared/daemonClient';
 
@@ -12,27 +17,31 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function run(_args: string[]): Promise<number> {
+export type StopResult =
+  | { status: 'stopped'; pid?: number }
+  | { status: 'not-running'; removedStale: boolean }
+  | { status: 'failed'; message: string };
+
+export async function stopDaemon(): Promise<StopResult> {
   const state = await getDaemonState();
 
   switch (state.state) {
     case 'not-running':
-      console.log('Daemon is not running');
-      return 0;
+      return { status: 'not-running', removedStale: false };
 
     case 'stale':
       // -1 never matches a real pid, so only a pid-less legacy file or our stale one is removed.
       removePortFileIfOwned(state.pid ?? -1);
-      console.log('Daemon is not running (removed stale port file)');
-      return 0;
+      return { status: 'not-running', removedStale: true };
 
     case 'unresponsive':
       // The pid may have been reused by an unrelated process, so never kill it blindly.
-      console.error(
-        `Process ${state.pid} is registered as the daemon on port ${state.port} but is not responding. ` +
-          'Stop it manually if it is a clipcmd daemon, then run `clipcmd start`.'
-      );
-      return 1;
+      return {
+        status: 'failed',
+        message:
+          `Process ${state.pid} is registered as the daemon on port ${state.port} but is not responding. ` +
+          'Stop it manually if it is a clipcmd daemon, then run `clipcmd start`.',
+      };
 
     case 'running':
       break;
@@ -45,18 +54,32 @@ export async function run(_args: string[]): Promise<number> {
     // It may have exited before answering; the wait below decides.
   }
 
-  const stopped = () =>
-    readPortFile()?.pid !== pid && (pid === undefined || !isProcessAlive(pid));
-
   const deadline = Date.now() + STOP_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    if (stopped()) {
-      console.log('Daemon stopped');
-      return 0;
+    if (readPortFile()?.pid !== pid && (pid === undefined || !isProcessAlive(pid))) {
+      return { status: 'stopped', pid };
     }
     await sleep(100);
   }
+  return { status: 'failed', message: `Daemon${describePid(pid)} did not stop within ${STOP_TIMEOUT_MS / 1000}s` };
+}
 
-  console.error(`Daemon${describePid(pid)} did not stop within ${STOP_TIMEOUT_MS / 1000}s`);
-  return 1;
+export async function run(_args: string[]): Promise<number> {
+  // Written first, so a shell opening meanwhile does not start it again
+  const marker = getStoppedMarker();
+  fs.mkdirSync(path.dirname(marker), { recursive: true });
+  fs.writeFileSync(marker, '');
+
+  const result = await stopDaemon();
+  switch (result.status) {
+    case 'stopped':
+      console.log('Daemon stopped. It stays off until you run `clipcmd start`.');
+      return 0;
+    case 'not-running':
+      console.log(result.removedStale ? 'Daemon is not running (removed stale port file)' : 'Daemon is not running');
+      return 0;
+    case 'failed':
+      console.error(result.message);
+      return 1;
+  }
 }

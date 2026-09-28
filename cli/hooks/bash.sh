@@ -29,13 +29,28 @@ _clipcmd_ready=0      # 1 while waiting at the prompt: the next DEBUG trap is a 
 _clipcmd_started=0    # 1 after /start was sent for the running command
 _clipcmd_seq=0        # command counter; ties `clipcmd shell` output to the command
 _clipcmd_retry_at=0   # $SECONDS before which the daemon is assumed unreachable
+_clipcmd_autostart_at=-100   # $SECONDS of the last automatic daemon start
 _clipcmd_port=""
+
+# Starts the daemon in the background (at most every 30s), e.g. in the first
+# shell after a reboot. `clipcmd start --auto` does nothing after `clipcmd stop`.
+_clipcmd_autostart() {
+  (( SECONDS - _clipcmd_autostart_at >= 30 )) || return 1
+  [[ "${CLIPCMD_AUTOSTART:-}" != 0 && ! -e "$_clipcmd_dir/stopped" ]] || return 1
+  command -v clipcmd >/dev/null 2>&1 || return 1
+  _clipcmd_autostart_at=$SECONDS
+  ( clipcmd start --auto --quiet >/dev/null 2>&1 & )
+  return 0
+}
 
 # Sets _clipcmd_port; fails if the daemon is not registered or recently unreachable.
 # Uses only builtins: forking on every prompt is slow, especially under Git Bash.
 _clipcmd_read_port() {
   (( SECONDS >= _clipcmd_retry_at )) || return 1
-  [[ -r "$_clipcmd_port_file" ]] || return 1
+  if [[ ! -r "$_clipcmd_port_file" ]]; then
+    _clipcmd_autostart
+    return 1
+  fi
   local line=""
   IFS= read -r line < "$_clipcmd_port_file" 2>/dev/null
   line="${line%%:*}"
@@ -44,11 +59,19 @@ _clipcmd_read_port() {
   _clipcmd_port="$line"
 }
 
-# curl exit 7 (connection refused) / 28 (timeout): back off for 30s instead of
+# curl exit 7 (connection refused) / 28 (timeout; also how a closed port looks
+# on Windows): the daemon is gone, so start it. Meanwhile back off, instead of
 # delaying every command by the timeout.
 _clipcmd_note_curl_status() {
   case "$1" in
-    7|28) _clipcmd_retry_at=$(( SECONDS + 30 )) ;;
+    7|28)
+      _clipcmd_autostart
+      if (( SECONDS - _clipcmd_autostart_at < 10 )); then
+        _clipcmd_retry_at=$(( SECONDS + 1 ))    # starting up: try again soon
+      else
+        _clipcmd_retry_at=$(( SECONDS + 30 ))
+      fi
+      ;;
   esac
 }
 
@@ -186,6 +209,38 @@ _clipcmd_debug_trap() {
 _clipcmd_bp_preexec() { _clipcmd_send_start "$1"; }
 _clipcmd_bp_precmd() { _clipcmd_send_end "$?"; }
 
+# True when this session should run inside `clipcmd shell`, which records what
+# commands print so [COPY OUTPUT] works: a terminal session, not VS Code (the
+# clipcmd extension captures output there), not SSH, and not turned off with
+# "autoShell": false in config.json or CLIPCMD_AUTOSHELL=0 (=1 forces it).
+_clipcmd_want_autoshell() {
+  [[ -z "${CLIPCMD_SESSION:-}" && "${CLIPCMD_AUTOSHELL:-}" != 0 && "${TERM_PROGRAM:-}" != vscode ]] || return 1
+  if [[ "${CLIPCMD_AUTOSHELL:-}" != 1 ]]; then
+    # mintty (Git Bash's own window) is not a console node-pty can relay
+    [[ -t 0 && -t 1 && "${TERM:-}" != dumb && "${TERM_PROGRAM:-}" != mintty ]] || return 1
+    [[ -z "${INSIDE_EMACS:-}${SSH_CONNECTION:-}" ]] || return 1
+    local config="" off='"autoShell"[[:space:]]*:[[:space:]]*false'
+    [[ -r "$_clipcmd_dir/config.json" ]] && IFS= read -r -d '' config < "$_clipcmd_dir/config.json"
+    [[ "$config" =~ $off ]] && return 1
+  fi
+  command -v clipcmd >/dev/null 2>&1
+}
+
+# At shell start: start the daemon unless it is registered and alive.
+_clipcmd_check_daemon() {
+  local line=""
+  [[ -r "$_clipcmd_port_file" ]] && IFS= read -r line < "$_clipcmd_port_file" 2>/dev/null
+  line="${line%$'\r'}"
+  if [[ -z "$line" ]]; then
+    _clipcmd_autostart
+  elif [[ "$line" =~ :([0-9]+)$ && "${OSTYPE:-}" != msys* && "${OSTYPE:-}" != cygwin* ]]; then
+    # Left over from before a reboot? (Not under Git Bash: the file holds a
+    # Windows pid, which `kill` does not know.)
+    kill -0 "${BASH_REMATCH[1]}" 2>/dev/null || _clipcmd_autostart
+  fi
+  return 0
+}
+
 # Install once per shell; re-sourcing ~/.bashrc just refreshes the functions above.
 #
 # This must run at the top level of ~/.bashrc, not inside a function: bash
@@ -195,6 +250,16 @@ _clipcmd_bp_precmd() { _clipcmd_send_end "$?"; }
 # chains ours, so installing here keeps both working.
 if [[ $- == *i* && -z "${_clipcmd_installed:-}" ]]; then
   _clipcmd_installed=1
+
+  # Output capture: continue this session inside `clipcmd shell` (which also
+  # starts the daemon). 126: the wrapper could not start; carry on without it.
+  if _clipcmd_want_autoshell; then
+    if shopt -q login_shell; then clipcmd shell bash --login; else clipcmd shell bash; fi
+    _clipcmd_status=$?
+    (( _clipcmd_status == 126 )) || exit "$_clipcmd_status"
+    unset _clipcmd_status
+  fi
+  _clipcmd_check_daemon
 
   if [[ -n "${bash_preexec_imported:-}${__bp_imported:-}" ]]; then
     preexec_functions+=(_clipcmd_bp_preexec)

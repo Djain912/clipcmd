@@ -1,7 +1,15 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { FAKE_LOCALAPPDATA, TEST_URL_SCHEME } from '../vitest.config';
+import {
+  FAKE_CONFIG_DIR,
+  FAKE_LOCALAPPDATA,
+  FAKE_POWERSHELL_PROFILE,
+  FAKE_XDG_DATA_HOME,
+  TEST_URL_SCHEME,
+} from '../vitest.config';
+
+const FAKE_DIRS = [FAKE_LOCALAPPDATA, FAKE_XDG_DATA_HOME, FAKE_CONFIG_DIR, path.dirname(FAKE_POWERSHELL_PROFILE)];
 
 /** Compile src/ to dist/ so end-to-end tests exercise the shipped JavaScript. */
 export default function setup(): () => void {
@@ -10,13 +18,13 @@ export default function setup(): () => void {
     cwd: root,
     stdio: 'inherit',
   });
-  fs.mkdirSync(FAKE_LOCALAPPDATA, { recursive: true });
+  for (const dir of FAKE_DIRS) fs.mkdirSync(dir, { recursive: true });
 
   return () => {
     // Remove whatever the tests registered under the throwaway scheme
     if (process.platform === 'win32') {
       spawnSync('reg.exe', ['delete', `HKCU\\Software\\Classes\\${TEST_URL_SCHEME}`, '/f'], { windowsHide: true });
     }
-    fs.rmSync(FAKE_LOCALAPPDATA, { recursive: true, force: true });
+    for (const dir of FAKE_DIRS) fs.rmSync(dir, { recursive: true, force: true });
   };
 }

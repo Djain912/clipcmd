@@ -9,7 +9,7 @@ import * as net from 'node:net';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { BIN, freePort, makeTempDir, occupyPort, removeDir, REPO_ROOT, waitFor } from '../helpers';
+import { BIN, freePort, makeTempDir, occupyPort, removeDir, REPO_ROOT, request, startTestDaemon, waitFor } from '../helpers';
 import { HOOK_START_MARKER } from '../../src/installer/installer';
 
 interface CliResult {
@@ -23,7 +23,17 @@ let home: string;
 let port: number;
 
 function env(extra: Record<string, string | undefined> = {}): NodeJS.ProcessEnv {
-  const e: NodeJS.ProcessEnv = { ...process.env, CLIPCMD_CONFIG_DIR: configDir, HOME: home, USERPROFILE: home, ...extra };
+  const e: NodeJS.ProcessEnv = {
+    ...process.env,
+    CLIPCMD_CONFIG_DIR: configDir,
+    HOME: home,
+    USERPROFILE: home,
+    // Linux link handler and fish config live under these; keep them in `home`
+    XDG_DATA_HOME: path.join(home, '.local', 'share'),
+    XDG_CONFIG_HOME: undefined,
+    CLIPCMD_POWERSHELL_PROFILE: path.join(home, 'Documents', 'PowerShell', 'Microsoft.PowerShell_profile.ps1'),
+    ...extra,
+  };
   for (const [k, v] of Object.entries(e)) if (v === undefined) delete e[k];
   return e;
 }
@@ -53,6 +63,13 @@ function alive(pid: number): boolean {
   } catch {
     return false;
   }
+}
+
+/** Where `clipcmd init` puts this platform's link handler (inside the test's dirs). */
+function handlerPath(): string {
+  if (process.platform === 'win32') return path.join(configDir, 'protocol', 'open.js');
+  if (process.platform === 'darwin') return path.join(home, 'Applications', 'clipcmd-vitest link handler.app');
+  return path.join(home, '.local', 'share', 'applications', 'clipcmd-vitest-url-handler.desktop');
 }
 
 function deadPid(): number {
@@ -100,7 +117,7 @@ describe('daemon lifecycle via the CLI', () => {
     expect(r).toMatchObject({ code: 0, stdout: `Daemon is running on port ${port} (PID ${info.pid})\n` });
 
     r = await cli(['stop']);
-    expect(r).toMatchObject({ code: 0, stdout: 'Daemon stopped\n' });
+    expect(r).toMatchObject({ code: 0, stdout: 'Daemon stopped. It stays off until you run `clipcmd start`.\n' });
     expect(portFile()).toBeUndefined();
     await waitFor(() => !alive(info.pid));
 
@@ -214,6 +231,156 @@ describe('daemon lifecycle via the CLI', () => {
     expect(r.stderr).toContain('Daemon failed to start');
     fs.rmSync(configDir);
     fs.mkdirSync(configDir);
+  });
+});
+
+describe('stop / start --auto (what the shell hooks run)', () => {
+  const marker = () => path.join(configDir, 'stopped');
+
+  it('start --auto starts a missing daemon silently', async () => {
+    const r = await cli(['start', '--auto', '--quiet']);
+    expect(r).toMatchObject({ code: 0, stdout: '', stderr: '' });
+    expect(alive(portFile()!.pid)).toBe(true);
+    // Already running: still silent
+    expect(await cli(['start', '--auto', '--quiet'])).toMatchObject({ code: 0, stdout: '' });
+  });
+
+  it('after `clipcmd stop` the daemon stays off until an explicit start', async () => {
+    expect((await cli(['start'])).code).toBe(0);
+    const { pid } = portFile()!;
+    expect((await cli(['stop'])).code).toBe(0);
+    expect(fs.existsSync(marker())).toBe(true);
+    await waitFor(() => !alive(pid));
+
+    expect(await cli(['start', '--auto', '--quiet'])).toMatchObject({ code: 0, stdout: '' });
+    expect(portFile()).toBeUndefined();
+
+    const r = await cli(['start']);
+    expect(r.stdout).toContain('Daemon started');
+    expect(fs.existsSync(marker())).toBe(false);
+    expect(alive(portFile()!.pid)).toBe(true);
+  });
+
+  it('`stop` with no daemon running still keeps automatic starts off', async () => {
+    expect(await cli(['stop'])).toMatchObject({ code: 0, stdout: 'Daemon is not running\n' });
+    expect(fs.existsSync(marker())).toBe(true);
+    expect((await cli(['start', '--auto'])).code).toBe(0);
+    expect(portFile()).toBeUndefined();
+  });
+});
+
+describe('doctor', () => {
+  it('fails without a shell hook and explains the fix', async () => {
+    const r = await cli(['doctor']);
+    expect(r.code).toBe(1);
+    expect(r.stdout).toContain('[FAIL] No shell hook installed');
+    expect(r.stdout).toContain('Run `clipcmd init`');
+    expect(r.stdout).toContain('[WARN] Daemon not running');
+    expect(r.stdout).toMatch(/\[ OK \] Node\.js \d+/);
+  });
+
+  it('passes once set up, and flags outdated hooks and a stopped daemon', async () => {
+    expect((await cli(['init', 'bash'])).code).toBe(0);
+    expect((await cli(['start'])).code).toBe(0);
+    let r = await cli(['doctor']);
+    expect(r.stdout).toContain('[ OK ] Shell hook installed for: bash');
+    expect(r.stdout).toContain(`[ OK ] Daemon running on port ${port}`);
+    expect(r.stdout).not.toContain('[FAIL]');
+    expect(r.code).toBe(0);
+
+    const bashrc = path.join(home, '.bashrc');
+    fs.writeFileSync(bashrc, fs.readFileSync(bashrc, 'utf8').replace('_clipcmd_ready=0', '_clipcmd_ready=2'));
+    expect((await cli(['stop'])).code).toBe(0);
+    r = await cli(['doctor']);
+    expect(r.stdout).toContain('[WARN] The bash hook is from another clipcmd version');
+    expect(r.stdout).toContain('Run `clipcmd init bash`');
+    expect(r.stdout).toContain('[WARN] Daemon stopped with `clipcmd stop`');
+  });
+
+  it('reports invalid config values', async () => {
+    fs.writeFileSync(path.join(configDir, 'config.json'), JSON.stringify({ port, links: 'carrier-pigeon' }));
+    const r = await cli(['doctor']);
+    expect(r.stdout).toMatch(/\[WARN\] Config problems: .*links/);
+  });
+});
+
+describe('open (the Linux / macOS link handler)', () => {
+  const savedConfigDir = process.env.CLIPCMD_CONFIG_DIR;
+  afterEach(() => {
+    process.env.CLIPCMD_CONFIG_DIR = savedConfigDir;
+  });
+
+  async function daemonWithBlock() {
+    process.env.CLIPCMD_CONFIG_DIR = configDir; // the test daemon writes its port file here
+    const daemon = await startTestDaemon({ configDir, writePortFile: true });
+    await request(daemon.port, '/start?cmd=echo%20hi&pwd=%2Ftmp&sid=s1');
+    const { body } = await request(daemon.port, '/end?exitCode=0&sid=s1');
+    const id = /[?&]id=([0-9a-f-]+)/.exec(body)![1];
+    return { daemon, id };
+  }
+
+  it('forwards a button click to the daemon', async () => {
+    const { daemon, id } = await daemonWithBlock();
+    try {
+      expect((await cli(['open', `clipcmd://copy?id=${id}&type=cmd`])).code).toBe(0);
+      expect(daemon.clipboard.last).toBe('echo hi');
+      // Windows-style normalized URL
+      expect((await cli(['open', `clipcmd://select/?id=${id}`])).code).toBe(0);
+      expect(daemon.clipboard.writes).toHaveLength(2);
+      expect(daemon.clipboard.last).toContain('$ echo hi'); // [+] collects in transcript form
+      // Unknown block
+      expect((await cli(['open', 'clipcmd://copy?id=999999&type=cmd'])).code).toBe(1);
+    } finally {
+      await daemon.stop();
+    }
+  });
+
+  it.each(['', 'clipcmd://shutdown', 'clipcmd://copy?id=1&type=cmd#x', 'https://example.com/copy?id=1', 'clipcmd://copy?a=<b>'])(
+    'rejects %j with exit code 2',
+    async (url) => {
+      const r = await cli(url ? ['open', url] : ['open']);
+      expect(r.code).toBe(2);
+      expect(r.stderr).toContain('Usage: clipcmd open');
+    }
+  );
+
+  it('exits 1 when no daemon is running', async () => {
+    expect((await cli(['open', 'clipcmd://copy?id=1&type=cmd'])).code).toBe(1);
+  });
+});
+
+describe('uninstall --all', () => {
+  it('removes every hook and the link handler, and stops the daemon', async () => {
+    const bashrc = path.join(home, '.bashrc');
+    const zshrc = path.join(home, '.zshrc');
+    fs.writeFileSync(bashrc, 'export KEEP=1\n');
+    expect((await cli(['init', 'bash'])).code).toBe(0);
+    expect((await cli(['init', 'zsh'])).code).toBe(0);
+    expect((await cli(['start'])).code).toBe(0);
+    const { pid } = portFile()!;
+
+    const r = await cli(['uninstall', '--all']);
+    expect(r.code).toBe(0);
+    expect(r.stdout).toContain(`Removed the bash hook from ${bashrc}`);
+    expect(r.stdout).toContain(`Removed the zsh hook from ${zshrc}`);
+    expect(r.stdout).toContain('Stopped the daemon.');
+    expect(fs.readFileSync(bashrc, 'utf8')).toBe('export KEEP=1\n');
+    expect(fs.readFileSync(zshrc, 'utf8')).not.toContain(HOOK_START_MARKER);
+    await waitFor(() => !alive(pid));
+    expect(fs.existsSync(handlerPath())).toBe(false);
+
+    // Nothing left: still succeeds
+    expect((await cli(['uninstall', '--all'])).code).toBe(0);
+  });
+
+  it('removes the link handler with the last single-shell uninstall', async () => {
+    expect((await cli(['init', 'bash'])).code).toBe(0);
+    expect((await cli(['init', 'fish'])).code).toBe(0);
+    const registered = fs.existsSync(handlerPath()); // e.g. Linux without xdg-mime cannot register
+    await cli(['uninstall', 'bash']);
+    expect(fs.existsSync(handlerPath())).toBe(registered);
+    await cli(['uninstall', 'fish']);
+    expect(fs.existsSync(handlerPath())).toBe(false);
   });
 });
 

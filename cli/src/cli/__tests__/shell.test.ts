@@ -187,9 +187,12 @@ describe('clipcmd shell (PTY wrapper)', () => {
       cwd: dir,
       ancestors: () => [],
       sendOutput: (sid, seq, text) => sent.push([sid, seq, text]),
+      ensureDaemon: vi.fn(async () => undefined),
       ...overrides,
     };
-    return { pty, spawn, stdin, stdout, deps, sent };
+    // run() spawns the shell after awaiting ensureDaemon
+    const spawned = () => waitFor(() => spawn.mock.calls.length > 0, 2000);
+    return { pty, spawn, stdin, stdout, deps, sent, spawned };
   }
 
   it(`exits ${EXIT_CANNOT_START} with install instructions when node-pty is missing (Req 12.3)`, async () => {
@@ -212,8 +215,9 @@ describe('clipcmd shell (PTY wrapper)', () => {
   });
 
   it('mirrors the terminal, sends each command output to the daemon, and cleans up', async () => {
-    const { pty, spawn, stdin, stdout, deps, sent } = setup();
+    const { pty, spawn, stdin, stdout, deps, sent, spawned } = setup();
     const done = run([], deps);
+    await spawned();
 
     const [file, args, opts] = spawn.mock.calls[0];
     expect(file).toBe('/bin/zsh');
@@ -253,8 +257,9 @@ describe('clipcmd shell (PTY wrapper)', () => {
   });
 
   it('starts the requested shell, without a second PowerShell banner', async () => {
-    const { pty, spawn, deps } = setup({ platform: 'win32', env: {} });
+    const { pty, spawn, deps, spawned } = setup({ platform: 'win32', env: {} });
     const done = run(['powershell'], deps);
+    await spawned();
     expect(spawn.mock.calls[0][0]).toBe('powershell.exe');
     expect(spawn.mock.calls[0][1]).toEqual(['-NoLogo']);
     pty.exit(0);
@@ -277,15 +282,52 @@ describe('clipcmd shell (PTY wrapper)', () => {
   });
 
   it('passes the detected PowerShell to node-pty on Windows', async () => {
-    const { pty, spawn, deps } = setup({
+    const { pty, spawn, deps, spawned } = setup({
       platform: 'win32',
       env: { ComSpec: 'C:\\WINDOWS\\system32\\cmd.exe' },
       ancestors: () => ['cmd.exe', 'pwsh.exe', 'WindowsTerminal.exe'],
     });
     const done = run([], deps);
+    await spawned();
     expect(spawn.mock.calls[0][0]).toBe('pwsh.exe');
     pty.exit(0);
     expect(await done).toBe(0);
+  });
+
+  it('starts the daemon before the shell, and still starts the shell if that fails', async () => {
+    const order: string[] = [];
+    const { pty, spawn, deps, spawned } = setup({
+      ensureDaemon: async () => {
+        order.push('daemon');
+        throw new Error('no daemon');
+      },
+    });
+    spawn.mockImplementation(() => {
+      order.push('shell');
+      return pty;
+    });
+    const done = run([], deps);
+    await spawned();
+    expect(order).toEqual(['daemon', 'shell']);
+    pty.exit(0);
+    expect(await done).toBe(0);
+  });
+
+  it('does not start the daemon when it cannot run the shell', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { deps } = setup({ stdin: fakeStdin(false) as unknown as NodeJS.ReadStream });
+    expect(await run([], deps)).toBe(EXIT_CANNOT_START);
+    expect(deps.ensureDaemon).not.toHaveBeenCalled();
+  });
+
+  it('starts a login shell with --login (the hooks pass it for login shells)', async () => {
+    const { pty, spawn, deps, spawned } = setup();
+    const done = run(['--login', 'zsh'], deps);
+    await spawned();
+    expect(spawn.mock.calls[0][0]).toBe('/bin/zsh');
+    expect(spawn.mock.calls[0][1]).toEqual(['-l']);
+    pty.exit(0);
+    await done;
   });
 });
 
@@ -316,5 +358,12 @@ describe('resolveShell / shellArgs', () => {
     expect(shellArgs('powershell.exe')).toEqual(['-NoLogo']);
     expect(shellArgs('C:/Program Files/PowerShell/7/pwsh.exe')).toEqual(['-NoLogo']);
     expect(shellArgs('/bin/bash')).toEqual([]);
+  });
+
+  it('starts login shells with -l, except PowerShell and unknown shells', () => {
+    expect(shellArgs('/bin/bash', true)).toEqual(['-l']);
+    expect(shellArgs('/usr/bin/fish', true)).toEqual(['-l']);
+    expect(shellArgs('powershell.exe', true)).toEqual(['-NoLogo']);
+    expect(shellArgs('/bin/sh', true)).toEqual([]);
   });
 });

@@ -3,7 +3,9 @@
  * Parses the command name from argv and dispatches to the appropriate command module.
  * Requirements: 11.1
  */
+import { run as runDoctor } from './commands/doctor';
 import { run as runInit } from './commands/init';
+import { run as runOpen } from './commands/open';
 import { run as runShell } from './commands/shell';
 import { run as runStart } from './commands/start';
 import { run as runStatus } from './commands/status';
@@ -12,13 +14,20 @@ import { run as runUninstall } from './commands/uninstall';
 
 const USAGE = `Usage: clipcmd <command>
 
+Copy buttons ([COPY CMD] [COPY OUTPUT] [COPY BOTH] [+]) after every terminal command.
+
 Commands:
-  init [shell]       Install shell hooks for automatic copy buttons (zsh, bash, fish)
-  start              Start the clipcmd background daemon
-  stop               Stop the clipcmd background daemon
-  status             Show daemon status
-  uninstall [shell]  Remove shell hooks
-  shell              Start shell in PTY wrapper for output capture (requires node-pty)
+  init [shell]        Install the shell hook (powershell, pwsh, bash, zsh, fish)
+  start               Start the background daemon (shells also start it automatically)
+  stop                Stop the daemon; it stays off until \`clipcmd start\`
+  status              Show whether the daemon is running
+  doctor              Check the setup and explain how to fix problems
+  shell [shell]       Run a shell with output capture (automatic in PowerShell, bash, zsh, fish)
+  uninstall [shell]   Remove the hook from a shell
+  uninstall --all     Remove clipcmd from every shell, remove the link handler, stop the daemon
+  open <url>          Handle a clipcmd:// button link (used by the link handler)
+
+Run \`clipcmd init\`, then open a new terminal.
 `;
 
 const COMMANDS: Record<string, (args: string[]) => Promise<number>> = {
@@ -26,8 +35,10 @@ const COMMANDS: Record<string, (args: string[]) => Promise<number>> = {
   start: runStart,
   stop: runStop,
   status: runStatus,
+  doctor: runDoctor,
   uninstall: runUninstall,
   shell: runShell,
+  open: runOpen,
 };
 
 export async function main(argv: string[] = process.argv.slice(2)): Promise<number> {

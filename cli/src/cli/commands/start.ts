@@ -8,7 +8,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { spawn } from 'node:child_process';
 import { isDaemonLockHeld } from '../../config/daemonLock';
-import { getLogFile } from '../../config/paths';
+import { getLogFile, getStoppedMarker } from '../../config/paths';
 import { readPortFile } from '../../config/portFile';
 import { checkHealth, describePid, getDaemonState } from '../../shared/daemonClient';
 
@@ -23,17 +23,22 @@ export function getDaemonEntry(): string {
   return path.resolve(__dirname, '../../daemon/index.js');
 }
 
-export async function run(_args: string[]): Promise<number> {
+export type EnsureResult =
+  | { status: 'running'; port: number; pid?: number }
+  | { status: 'started'; port: number; pid: number }
+  | { status: 'failed'; message: string };
+
+/**
+ * Starts the daemon unless one is already running, and waits until it
+ * answers. Safe to call concurrently: the daemon's lock lets only one start.
+ */
+export async function ensureDaemon(timeoutMs = READY_TIMEOUT_MS): Promise<EnsureResult> {
   const state = await getDaemonState();
-  if (state.state === 'running') {
-    console.log(`Daemon is already running on port ${state.port}${describePid(state.pid)}`);
-    return 0;
-  }
+  if (state.state === 'running') return { status: 'running', port: state.port, pid: state.pid };
 
   const daemonPath = getDaemonEntry();
   if (!fs.existsSync(daemonPath)) {
-    console.error(`Daemon entry point not found at ${daemonPath}. Run \`npm run build\` first.`);
-    return 1;
+    return { status: 'failed', message: `Daemon entry point not found at ${daemonPath}. Run \`npm run build\` first.` };
   }
 
   const child = spawn(process.execPath, [daemonPath], {
@@ -56,34 +61,57 @@ export async function run(_args: string[]): Promise<number> {
 
   // Wait for a healthy daemon: ours, or the one that won a concurrent start
   // (our child then exits on its own after seeing the lock).
-  const deadline = Date.now() + READY_TIMEOUT_MS;
+  const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     await sleep(100);
     if (spawnError) break;
 
     const info = readPortFile();
     if (info && (await checkHealth(info.port, 1000))) {
-      if (info.pid === child.pid) {
-        console.log(`Daemon started on port ${info.port} (PID ${child.pid})`);
-      } else {
-        console.log(`Daemon is already running on port ${info.port}${describePid(info.pid)}`);
-      }
-      return 0;
+      return child.pid !== undefined && info.pid === child.pid
+        ? { status: 'started', port: info.port, pid: child.pid }
+        : { status: 'running', port: info.port, pid: info.pid };
     }
 
     // Our child is gone and nobody else is starting up: it failed.
     if (exited && !isDaemonLockHeld()) break;
   }
 
-  if (spawnError) {
-    console.error(`Failed to launch the daemon: ${spawnError.message}`);
-    return 1;
-  }
-
-  console.error(
-    exited
+  if (spawnError) return { status: 'failed', message: `Failed to launch the daemon: ${spawnError.message}` };
+  return {
+    status: 'failed',
+    message: exited
       ? `Daemon failed to start. See ${getLogFile()} for details.`
-      : `Daemon did not become ready within ${READY_TIMEOUT_MS / 1000}s. See ${getLogFile()} for details.`
-  );
-  return 1;
+      : `Daemon did not become ready within ${timeoutMs / 1000}s. See ${getLogFile()} for details.`,
+  };
+}
+
+/** True after `clipcmd stop`: automatic starts (shells, `clipcmd shell`) stay off. */
+export function isStoppedByUser(): boolean {
+  return fs.existsSync(getStoppedMarker());
+}
+
+/**
+ * `clipcmd start` (explicit) clears the stop marker; `clipcmd start --auto`
+ * is what the shell hooks run, and it respects the marker.
+ */
+export async function run(args: string[]): Promise<number> {
+  const quiet = args.includes('--quiet');
+  if (args.includes('--auto')) {
+    if (isStoppedByUser()) return 0;
+  } else {
+    fs.rmSync(getStoppedMarker(), { force: true });
+  }
+  const result = await ensureDaemon();
+  switch (result.status) {
+    case 'running':
+      if (!quiet) console.log(`Daemon is already running on port ${result.port}${describePid(result.pid)}`);
+      return 0;
+    case 'started':
+      if (!quiet) console.log(`Daemon started on port ${result.port} (PID ${result.pid})`);
+      return 0;
+    case 'failed':
+      console.error(result.message);
+      return 1;
+  }
 }

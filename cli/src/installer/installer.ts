@@ -34,7 +34,8 @@ export function getConfigPath(shell: SupportedShell): string {
     case 'bash':
       return path.join(home, '.bashrc');
     case 'fish':
-      return path.join(home, '.config', 'fish', 'config.fish');
+      // fish reads $XDG_CONFIG_HOME/fish/config.fish when XDG_CONFIG_HOME is set
+      return path.join(process.env.XDG_CONFIG_HOME || path.join(home, '.config'), 'fish', 'config.fish');
     case 'powershell':
     case 'pwsh':
       return getPowerShellInfo(shell).profile;

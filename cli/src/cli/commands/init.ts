@@ -84,7 +84,7 @@ export async function run(args: string[]): Promise<number> {
       console.log(`clipcmd hook installed successfully for ${shell} in ${configPath}.`);
       break;
   }
-  if (process.platform === 'win32') setUpSilentLinks();
+  setUpSilentLinks();
   if (result !== 'unchanged') console.log(reloadInstruction(shell));
   const warning = shell === 'bash' ? loginShellWarning() : undefined;
   if (warning) console.log(warning);
@@ -92,9 +92,9 @@ export async function run(args: string[]): Promise<number> {
 }
 
 /**
- * Windows: make the copy buttons work without opening a browser. Registers
- * the clipcmd:// handler and allows the scheme in Windows Terminal, which
- * otherwise asks for confirmation on every click.
+ * Make the copy buttons work without opening a browser: register the
+ * clipcmd:// handler and, on Windows, allow the scheme in Windows Terminal,
+ * which otherwise asks for confirmation on every click.
  */
 function setUpSilentLinks(): void {
   const scheme = urlScheme();
@@ -104,6 +104,7 @@ function setUpSilentLinks(): void {
     return;
   }
   console.log(`Copy buttons now copy silently (${scheme}:// links, registered for your user).`);
+  if (process.platform !== 'win32') return;
 
   for (const { file, status } of allowSchemeInWindowsTerminal(scheme)) {
     if (status === 'added') {
