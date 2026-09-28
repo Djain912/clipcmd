@@ -94,8 +94,10 @@ if ($ExecutionContext.SessionState.LanguageMode -eq 'FullLanguage' -and
     } catch {
       $err = $_.Exception
       while ($err -and -not ($err -is [System.Net.WebException])) { $err = $err.InnerException }
-      if ($err -and ($err.Status -eq [System.Net.WebExceptionStatus]::ConnectFailure -or
-                     $err.Status -eq [System.Net.WebExceptionStatus]::Timeout)) {
+      # No HTTP response at all: nothing (working) listens on the port. (Not
+      # just ConnectFailure: PowerShell 7 reports a refused connection as
+      # UnknownError.)
+      if (-not ($err -and $err.Response)) {
         $null = __Clipcmd-AutoStart
         # Just started (AutoStartAt is 30s after that): try again soon
         $starting = $state.AutoStartAt -gt [datetime]::UtcNow.AddSeconds(20)

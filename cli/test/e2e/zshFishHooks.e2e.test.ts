@@ -34,6 +34,8 @@ for (const shell of SHELLS) {
       fs.mkdirSync(path.dirname(rc), { recursive: true });
       const hook = fs.readFileSync(path.join(REPO_ROOT, 'hooks', shell.hook), 'utf8');
       fs.writeFileSync(rc, shell.name === 'fish' ? FISH_PROMPT + hook : hook);
+      // Only our rc: system zsh files may prompt (e.g. compinit about insecure directories)
+      if (shell.name === 'zsh') fs.writeFileSync(path.join(home, '.zshenv'), 'unsetopt GLOBAL_RCS\n');
     });
     afterEach(async () => {
       await daemon.stop();
@@ -60,7 +62,8 @@ for (const shell of SHELLS) {
 
     it('records commands with exit codes and prints buttons', async () => {
       const out = await run(["echo 'a|b' | cat", 'false', "echo '100% & é'"].join('\n'));
-      expect(daemon.ringBuffer.getAll().map((b) => [b.command, b.exitCode])).toEqual([
+      // (fish also records the harness's final `exit`, a real command there)
+      expect(daemon.ringBuffer.getAll().filter((b) => b.command !== 'exit').map((b) => [b.command, b.exitCode])).toEqual([
         ["echo 'a|b' | cat", 0],
         ['false', 1],
         ["echo '100% & é'", 0],

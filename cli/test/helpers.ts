@@ -272,11 +272,19 @@ export async function runInTerminal(
     if (ready) await waitFor(() => code !== undefined || stripAnsi(output).includes(ready), timeoutMs);
     for (const line of input) if (code === undefined) term.write(`${line}\r`);
     await waitFor(() => code !== undefined, timeoutMs);
+  } catch (err) {
+    throw withScreen(err, output);
   } finally {
     if (code === undefined) term.kill();
     stopAnswering();
   }
   return { output, code };
+}
+
+/** Adds the end of what a terminal showed to an error (to see why a wait timed out). */
+export function withScreen(err: unknown, screen: string): Error {
+  const tail = stripAnsi(screen).slice(-800);
+  return new Error(`${err instanceof Error ? err.message : String(err)}\n--- terminal output (end) ---\n${tail}`);
 }
 
 /** Strips OSC 8 links and other escape sequences for readable assertions. */

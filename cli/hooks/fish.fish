@@ -156,8 +156,16 @@ if status is-interactive; and not set -q _clipcmd_installed
         set -l login
         status is-login; and set login --login
         clipcmd shell fish $login
-        set -l code $status
-        test $code -eq 126; or exit $code
+        set -g _clipcmd_exit_code $status
+        if test $_clipcmd_exit_code -ne 126
+            # The session is over. `exit` in config.fish only stops reading
+            # this file, so end the shell as its first prompt is about to show.
+            set -g fish_greeting
+            function _clipcmd_exit_shell --on-event fish_prompt
+                exit $_clipcmd_exit_code
+            end
+            exit $_clipcmd_exit_code
+        end
     end
     _clipcmd_check_daemon
 end

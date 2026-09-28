@@ -26,6 +26,7 @@ import {
   TestDaemon,
   tryLoadNodePty,
   waitFor,
+  withScreen,
 } from '../helpers';
 
 const pty = tryLoadNodePty();
@@ -129,7 +130,12 @@ for (const shell of POSIX_SHELLS) {
       const rc = path.join(home, file);
       fs.mkdirSync(path.dirname(rc), { recursive: true });
       fs.writeFileSync(rc, PROMPT + HOOK);
+      // Only our rc: system zsh files may prompt (e.g. compinit about insecure directories)
+      if (shell.name === 'zsh') fs.writeFileSync(path.join(home, '.zshenv'), 'unsetopt GLOBAL_RCS\n');
     }
+
+    /** Commands the daemon recorded, without the harness's final `exit` (fish records it). */
+    const recorded = () => daemon.ringBuffer.getAll().map((b) => b.command).filter((c) => c !== 'exit');
 
     function env(extra: Record<string, string | undefined> = {}): Record<string, string> {
       return shellEnv({
@@ -194,7 +200,7 @@ for (const shell of POSIX_SHELLS) {
       await run('echo a\necho b');
       await sleep(1000);
       expect(calls()).toEqual([]);
-      expect(daemon.ringBuffer.size).toBe(2);
+      expect(recorded()).toEqual(['echo a', 'echo b']);
     });
 
     it('restarts a daemon that stopped answering', async () => {
@@ -218,7 +224,7 @@ for (const shell of POSIX_SHELLS) {
       expect(code).toBe(5);
       expect(calls()).toEqual([`shell ${shell.name}`]);
       expect(out).not.toContain('SHOULD-NOT-RUN');
-      expect(daemon.ringBuffer.size).toBe(0);
+      expect(recorded()).toEqual([]);
     });
 
     it('carries on in the same session when `clipcmd shell` cannot start (exit 126)', async () => {
@@ -227,7 +233,7 @@ for (const shell of POSIX_SHELLS) {
       expect(code).toBe(0);
       expect(calls()).toEqual([`shell ${shell.name}`]);
       expect(out).toContain('it ran');
-      expect(daemon.ringBuffer.getAll().map((b) => b.command)).toEqual(["echo 'it ran'"]);
+      expect(recorded()).toEqual(["echo 'it ran'"]);
     });
 
     it('never wraps inside `clipcmd shell` or VS Code, or without a terminal', async () => {
@@ -320,6 +326,8 @@ describe.skipIf(!pty || !PS_EXE)(`PowerShell hook: daemon auto-start (${PS_EXE})
       }
       term.write('exit\r');
       await waitFor(() => exited, 15000);
+    } catch (err) {
+      throw withScreen(err, screen);
     } finally {
       if (!exited) term.kill();
       stopAnswering();

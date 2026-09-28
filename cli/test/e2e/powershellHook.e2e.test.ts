@@ -21,6 +21,7 @@ import {
   TestDaemon,
   tryLoadNodePty,
   waitFor,
+  withScreen,
 } from '../helpers';
 
 const pty = tryLoadNodePty();
@@ -112,6 +113,8 @@ for (const edition of EDITIONS) {
         }
         term.write('exit\r');
         await waitFor(() => exited, 15000);
+      } catch (err) {
+        throw withScreen(err, screen);
       } finally {
         if (!exited) term.kill();
         stopAnswering();
@@ -199,6 +202,8 @@ for (const edition of EDITIONS) {
         // Exit cleanly: a killed powershell.exe keeps the temp dir busy for a while
         term.write('exit\r');
         await waitFor(() => exited, 15000);
+      } catch (err) {
+        throw withScreen(err, screen);
       } finally {
         if (!exited) term.kill();
         stopAnswering();
