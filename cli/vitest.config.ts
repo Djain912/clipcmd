@@ -15,6 +15,7 @@ import { defineConfig } from 'vitest/config'
 export const TEST_URL_SCHEME = 'clipcmd-vitest'
 export const FAKE_LOCALAPPDATA = path.join(os.tmpdir(), 'clipcmd-vitest-localappdata')
 export const FAKE_XDG_DATA_HOME = path.join(os.tmpdir(), 'clipcmd-vitest-xdg-data')
+export const FAKE_XDG_CONFIG_HOME = path.join(os.tmpdir(), 'clipcmd-vitest-xdg-config')
 export const FAKE_CONFIG_DIR = path.join(os.tmpdir(), 'clipcmd-vitest-config')
 export const FAKE_POWERSHELL_PROFILE = path.join(os.tmpdir(), 'clipcmd-vitest-profile', 'profile.ps1')
 
@@ -36,6 +37,8 @@ export default defineConfig({
       CLIPCMD_POWERSHELL_PROFILE: FAKE_POWERSHELL_PROFILE,
       LOCALAPPDATA: FAKE_LOCALAPPDATA,
       XDG_DATA_HOME: FAKE_XDG_DATA_HOME,
+      // fish's config.fish and xdg-mime's mimeapps.list live here
+      XDG_CONFIG_HOME: FAKE_XDG_CONFIG_HOME,
       // Still needed to find the installed VS Code's shell-integration scripts
       CLIPCMD_TEST_REAL_LOCALAPPDATA: process.env.LOCALAPPDATA ?? '',
     },

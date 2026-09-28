@@ -106,18 +106,27 @@ describe('applyHookBlock / removeHookBlock (pure)', () => {
 
 describe('install / uninstall on disk', () => {
   let home: string;
-  const saved = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
+  const saved = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
 
   beforeEach(() => {
     home = makeTempDir();
     // os.homedir() reads USERPROFILE on Windows and HOME elsewhere
     process.env.HOME = home;
     process.env.USERPROFILE = home;
+    // fish's config follows XDG_CONFIG_HOME when set
+    delete process.env.XDG_CONFIG_HOME;
   });
   afterEach(() => {
-    process.env.HOME = saved.HOME;
-    process.env.USERPROFILE = saved.USERPROFILE;
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
     removeDir(home);
+  });
+
+  it('puts the fish hook under XDG_CONFIG_HOME when it is set', () => {
+    process.env.XDG_CONFIG_HOME = path.join(home, 'xdg');
+    expect(getConfigPath('fish')).toBe(path.join(home, 'xdg', 'fish', 'config.fish'));
   });
 
   it.each([

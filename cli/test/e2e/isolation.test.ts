@@ -30,10 +30,11 @@ describe('test isolation from the real setup', () => {
     expect(findWindowsTerminalSettings()).toEqual([]);
   });
 
-  it('uses a scratch config directory and PowerShell profile', () => {
+  it('uses a scratch config directory, PowerShell profile and fish config', () => {
     expect(inTmp(getConfigDir())).toBe(true);
     expect(inTmp(getConfigPath('powershell'))).toBe(true);
     expect(inTmp(getConfigPath('pwsh'))).toBe(true);
+    expect(inTmp(getConfigPath('fish'))).toBe(true);
   });
 
   it('keeps the shell hooks from starting daemons or wrapping themselves', () => {

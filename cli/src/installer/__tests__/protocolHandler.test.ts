@@ -129,7 +129,10 @@ describe.skipIf(!hasXdgMime)('Linux registration (xdg-mime)', () => {
       await request(daemon.port, '/start?cmd=echo%20linux&pwd=%2F&sid=x');
       const { body } = await request(daemon.port, '/end?exitCode=0&sid=x');
       const id = /[?&]id=([0-9a-f-]+)/.exec(body)![1];
-      spawnSync('xdg-open', [`${urlScheme()}://copy?id=${id}&type=cmd`], { env: process.env, timeout: 20000 });
+      // Without a display (CI), xdg-open ignores URL scheme handlers altogether
+      const env = { ...process.env, DISPLAY: process.env.DISPLAY ?? (process.env.WAYLAND_DISPLAY ? undefined : ':99') };
+      const opened = spawnSync('xdg-open', [`${urlScheme()}://copy?id=${id}&type=cmd`], { env, encoding: 'utf8', timeout: 20000 });
+      if (opened.status !== 0) throw new Error(`xdg-open failed: ${opened.stderr}`);
       await waitFor(() => daemon.clipboard.last === 'echo linux', 15000);
     } finally {
       await daemon.stop();

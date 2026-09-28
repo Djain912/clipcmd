@@ -5,11 +5,12 @@ import {
   FAKE_CONFIG_DIR,
   FAKE_LOCALAPPDATA,
   FAKE_POWERSHELL_PROFILE,
+  FAKE_XDG_CONFIG_HOME,
   FAKE_XDG_DATA_HOME,
   TEST_URL_SCHEME,
 } from '../vitest.config';
 
-const FAKE_DIRS = [FAKE_LOCALAPPDATA, FAKE_XDG_DATA_HOME, FAKE_CONFIG_DIR, path.dirname(FAKE_POWERSHELL_PROFILE)];
+const FAKE_DIRS = [FAKE_LOCALAPPDATA, FAKE_XDG_DATA_HOME, FAKE_XDG_CONFIG_HOME, FAKE_CONFIG_DIR, path.dirname(FAKE_POWERSHELL_PROFILE)];
 
 /** Compile src/ to dist/ so end-to-end tests exercise the shipped JavaScript. */
 export default function setup(): () => void {
