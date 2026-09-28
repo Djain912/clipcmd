@@ -1,0 +1,37 @@
+{
+  "name": "clipcmd",
+  "version": "0.1.0",
+  "description": "Inject clickable OSC 8 Copy buttons into the terminal after every shell command",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bin": {
+    "clipcmd": "bin/clipcmd.js"
+  },
+  "files": [
+    "dist/",
+    "bin/",
+    "hooks/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest --run",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "fast-check": "^4.10.2",
+    "typescript": "^5.4.5",
+    "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "@xterm/headless": "^6.0.0",
+    "clipboardy": "^4.0.0",
+    "jwttt": "^1.7.0"
+  },
+  "optionalDependencies": {
+    "node-pty": "^1.1.0"
+  }
+}

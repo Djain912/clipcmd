@@ -1,0 +1,8 @@
+src/
+**/*.test.ts
+**/__tests__/
+tsconfig.json
+vitest.config.ts
+.eslintrc*
+.prettierrc*
+*.spec.ts

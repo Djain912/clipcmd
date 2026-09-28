@@ -1,0 +1,45 @@
+{
+  "name": "clipcmd-vscode",
+  "displayName": "clipcmd",
+  "description": "Copy command output from clipcmd buttons in VS Code terminals, and check the clipcmd daemon",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "clipcmd.checkDaemon",
+        "title": "Check Daemon",
+        "category": "clipcmd"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "pretest": "npm run compile",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "mocha --ui tdd \"out/test/unit/**/*.test.js\"",
+    "test:integration": "node ./out/test/runIntegrationTests.js",
+    "package": "vsce package --no-dependencies --allow-missing-repository --skip-license"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "~20.19.0",
+    "@types/vscode": "~1.93.0",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.9.2",
+    "mocha": "^12.0.2",
+    "typescript": "^5.6.3"
+  }
+}

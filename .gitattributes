@@ -1,0 +1,5 @@
+# LF everywhere: the shell hooks must never be checked out with CRLF
+# (bash fails on `\r`), whatever core.autocrlf is set to.
+* text=auto eol=lf
+*.png binary
+*.ico binary
