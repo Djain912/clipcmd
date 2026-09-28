@@ -1,10 +1,34 @@
 {
   "name": "clipcmd",
-  "version": "0.1.0",
-  "description": "Inject clickable OSC 8 Copy buttons into the terminal after every shell command",
+  "version": "1.0.0",
+  "description": "Copy buttons after every terminal command: copy the command, its output, or both in one click. PowerShell, bash, zsh, fish.",
+  "keywords": [
+    "terminal",
+    "clipboard",
+    "copy",
+    "command",
+    "output",
+    "osc8",
+    "hyperlink",
+    "powershell",
+    "bash",
+    "zsh",
+    "fish",
+    "cli"
+  ],
+  "homepage": "https://github.com/Djain912/clipcmd#readme",
+  "bugs": {
+    "url": "https://github.com/Djain912/clipcmd/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Djain912/clipcmd.git",
+    "directory": "cli"
+  },
   "license": "MIT",
+  "author": "Djain912",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20"
   },
   "bin": {
     "clipcmd": "bin/clipcmd.js"
@@ -13,10 +37,12 @@
     "dist/",
     "bin/",
     "hooks/",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc",
     "test": "vitest --run",
     "prepublishOnly": "npm run build"
   },
@@ -28,8 +54,7 @@
   },
   "dependencies": {
     "@xterm/headless": "^6.0.0",
-    "clipboardy": "^4.0.0",
-    "jwttt": "^1.7.0"
+    "clipboardy": "^4.0.0"
   },
   "optionalDependencies": {
     "node-pty": "^1.1.0"
