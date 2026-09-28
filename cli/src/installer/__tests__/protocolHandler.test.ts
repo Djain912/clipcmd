@@ -7,6 +7,7 @@ import {
   appleScriptSource,
   cliEntry,
   desktopEntry,
+  desktopExecArg,
   isProtocolHandlerInstalled,
   linuxDesktopFile,
   macAppPath,
@@ -62,15 +63,20 @@ describe('urlScheme', () => {
 });
 
 describe('Linux .desktop entry', () => {
-  it('runs `clipcmd open %u` with node and the CLI given as absolute, quoted paths', () => {
+  it('runs `clipcmd open %u` with node and the CLI given as absolute paths', () => {
     const entry = desktopEntry('clipcmd');
     expect(entry).toContain('[Desktop Entry]');
     expect(entry).toContain('MimeType=x-scheme-handler/clipcmd;');
     expect(entry).toContain('NoDisplay=true');
     const exec = /^Exec=(.*)$/m.exec(entry)![1];
-    expect(exec.endsWith(' open %u')).toBe(true);
-    expect(exec.startsWith('"')).toBe(true);
+    expect(exec).toBe(`${desktopExecArg(process.execPath)} ${desktopExecArg(cliEntry())} open %u`);
     expect(cliEntry().endsWith(path.join('bin', 'clipcmd.js'))).toBe(true);
+  });
+
+  it('quotes Exec arguments only when needed (xdg-open splits plain words naively)', () => {
+    expect(desktopExecArg('/home/me/.nvm/versions/node/v22.1.0/bin/node')).toBe('/home/me/.nvm/versions/node/v22.1.0/bin/node');
+    expect(desktopExecArg('/opt/my apps/node')).toBe('"/opt/my apps/node"');
+    expect(desktopExecArg('/a/$HOME/"x"/100%')).toBe('"/a/\\\\$HOME/\\\\"x\\\\"/100%%"');
   });
 
   it('lives under XDG_DATA_HOME', () => {

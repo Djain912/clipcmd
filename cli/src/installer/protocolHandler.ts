@@ -148,8 +148,14 @@ export function linuxDesktopFile(scheme: string = urlScheme()): string {
   return path.join(xdgDataHome(), 'applications', `${scheme}-url-handler.desktop`);
 }
 
-/** Quotes an Exec argument per the Desktop Entry spec (string escapes, then quoting). */
-function desktopQuote(arg: string): string {
+/**
+ * An Exec argument per the Desktop Entry spec: plain when it needs no
+ * quoting (xdg-open's generic fallback, used outside GNOME/KDE, splits the
+ * line naively and fails on quoted paths), else quoted (string escapes, then
+ * quoting).
+ */
+export function desktopExecArg(arg: string): string {
+  if (/^[A-Za-z0-9/._+,:@=-]+$/.test(arg)) return arg;
   const quoted = arg.replace(/[\\"`$]/g, (c) => `\\${c}`).replace(/%/g, '%%');
   return `"${quoted.replace(/\\/g, '\\\\')}"`;
 }
@@ -159,7 +165,7 @@ export function desktopEntry(scheme: string): string {
     '[Desktop Entry]',
     'Type=Application',
     `Name=clipcmd copy buttons (${scheme}://)`,
-    `Exec=${desktopQuote(process.execPath)} ${desktopQuote(cliEntry())} open %u`,
+    `Exec=${desktopExecArg(process.execPath)} ${desktopExecArg(cliEntry())} open %u`,
     'NoDisplay=true',
     'Terminal=false',
     `MimeType=x-scheme-handler/${scheme};`,
