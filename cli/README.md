@@ -31,7 +31,7 @@ npm install -g clipcmd
 clipcmd init        # run it in the shell you use
 ```
 
-Then open a new terminal. That's it: the background daemon starts by itself with your first terminal (also after a reboot), and clicking a button copies silently — no browser tab, no window.
+Then open a new terminal. That's it: the background daemon starts by itself with your first terminal (also after a reboot). Hold **Ctrl** (**Cmd** on macOS) and click a button: it copies silently — no browser tab, no window. (Terminals open links only on Ctrl+click, so a plain click does nothing.)
 
 `clipcmd init` detects your shell (from `$SHELL`, or on Windows the PowerShell you run it from); pass `bash`, `zsh`, `fish`, `powershell` or `pwsh` to choose. Run it once per shell you use. Something not working? Run `clipcmd doctor`.
 
@@ -46,6 +46,7 @@ Requires Node.js 20 or newer.
 `clipcmd` runs a small background **daemon** on `127.0.0.1`. A **hook** in your shell config tells it about every command and prints the buttons when the command finishes. The buttons are [OSC 8 hyperlinks](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda); `clipcmd init` registers a `clipcmd://` link handler for your user account, so a click just tells the daemon what to copy:
 
 - **Windows**: under `HKCU\Software\Classes\clipcmd` (no admin rights); a click runs a tiny script with `wscript.exe`, which shows no window. `clipcmd init` also adds `"clipcmd"` to Windows Terminal's `safeUriSchemes` so it does not ask before each click (the original `settings.json` is backed up to `~/.config/clipcmd/backups/`).
+- **Windows Terminal**: it is a Microsoft Store app, and Windows does not let Store apps open link handlers registered for a single user (a `clipcmd://` link would only offer to "Get an app" from the Store). So in Windows Terminal (detected with `WT_SESSION`), each button is a `file:///` link to a small shortcut in `~/.config/clipcmd/links/` that runs the same script with the same `clipcmd://` link. Windows Terminal opens such links without asking; the daemon deletes old shortcuts along with the commands it forgets.
 - **Linux**: a hidden `.desktop` entry set as the default `x-scheme-handler/clipcmd` with `xdg-mime`.
 - **macOS**: a tiny background app in `~/Applications` that declares the URL scheme.
 
@@ -109,7 +110,7 @@ The buttons need a terminal that supports OSC 8 hyperlinks; elsewhere they appea
 
 | Terminal                   | Clickable buttons |
 |----------------------------|-------------------|
-| Windows Terminal           | ✅ (1.24+ copies without asking; `clipcmd init` allows `clipcmd://` in its settings) |
+| Windows Terminal           | ✅ (buttons are shortcut links, see [How It Works](#how-it-works)) |
 | VS Code terminal           | ✅ (works alongside VS Code's shell integration) |
 | iTerm2, WezTerm, kitty     | ✅ |
 | GNOME Terminal, Konsole, other VTE-based terminals | ✅ |
@@ -132,9 +133,13 @@ The buttons need a terminal that supports OSC 8 hyperlinks; elsewhere they appea
 
 Start with `clipcmd doctor`: it checks Node.js, the config, the daemon, each hook (and whether it is from the installed version), PowerShell's execution policy, `node-pty`, the link handler, Windows Terminal's settings and the VS Code extension.
 
+**Clicking a button does nothing** — hold Ctrl (Cmd on macOS) while you click: terminals only open links on Ctrl+click.
+
+**Windows Terminal says "Get an app to open this 'clipcmd' link"** — the buttons came from a terminal opened before `clipcmd init` (or from an older clipcmd). Open a new terminal. If new buttons do the same, run `clipcmd doctor`: it checks the shortcut template Windows Terminal buttons need (`clipcmd init` recreates it).
+
 **Clicking a button opens a browser tab** — no `clipcmd://` handler is registered (run `clipcmd init`), or `"links": "http"` is set in the config. Existing buttons keep their old links; new commands get new ones.
 
-**Windows Terminal asks "open this link?" on every click** — your Windows Terminal is older than 1.24, or `clipcmd init` could not edit its settings (it says so). Add `"safeUriSchemes": ["clipcmd"]` to the top level of Windows Terminal's `settings.json`.
+**Windows Terminal asks "open this link?" on every click** — it got `clipcmd://` links because the shortcut template is missing: run `clipcmd init`. If `clipcmd init` could not edit Windows Terminal's settings (it says so), also add `"safeUriSchemes": ["clipcmd"]` to the top level of Windows Terminal's `settings.json`.
 
 **VS Code asks whether to allow `clipcmd` links** — choose *Allow* once, or install the clipcmd VS Code extension, which allows them for you.
 
@@ -204,7 +209,7 @@ npm install
 npm test          # builds dist/, then runs unit, property and end-to-end tests
 ```
 
-The end-to-end tests run the real CLI, real bash (Git Bash on Windows), zsh and fish when installed, a real interactive PowerShell through a pseudo-console (Windows PowerShell 5.1, and PowerShell 7 when `pwsh` is installed or `CLIPCMD_TEST_PWSH` points at it), VS Code's real bash and PowerShell shell-integration scripts when VS Code is installed, a real PTY via `node-pty`, and the `clipcmd://` handler registered under a throwaway scheme name and opened the way terminals open links. Tests never touch your real `~/.config/clipcmd`, shell config files, Windows Terminal settings, link handler registration, or clipboard, and never start daemons from the hooks (`test/e2e/isolation.test.ts` guards this).
+The end-to-end tests run the real CLI, real bash (Git Bash on Windows), zsh and fish when installed, a real interactive PowerShell through a pseudo-console (Windows PowerShell 5.1, and PowerShell 7 when `pwsh` is installed or `CLIPCMD_TEST_PWSH` points at it), VS Code's real bash and PowerShell shell-integration scripts when VS Code is installed, a real PTY via `node-pty`, and the `clipcmd://` handler registered under a throwaway scheme name and opened through ShellExecute, both directly (as VS Code opens links) and through the shortcuts Windows Terminal buttons use. Tests never touch your real `~/.config/clipcmd`, shell config files, Windows Terminal settings, link handler registration, or clipboard, and never start daemons from the hooks (`test/e2e/isolation.test.ts` guards this).
 
 ---
 

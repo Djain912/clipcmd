@@ -514,6 +514,83 @@ describe('POST /output (output captured by clipcmd shell or the VS Code extensio
   });
 });
 
+describe('Windows Terminal buttons and the click tip', () => {
+  let dir: string;
+  let d: TestDaemon;
+  const calls: Array<[string, string, string]> = [];
+  const forgotten: string[] = [];
+  let linkFor: ((button: string) => string | undefined) | undefined;
+  let tip: string | undefined;
+
+  beforeEach(async () => {
+    dir = makeTempDir();
+    calls.length = 0;
+    forgotten.length = 0;
+    linkFor = (button) => `file:///C:/links/${button}.lnk`;
+    tip = undefined;
+    d = await startTestDaemon({
+      configDir: dir,
+      ringBufferSize: 2,
+      linkScheme: () => 'clipcmd',
+      buttonLinks: {
+        urlFor: (blockId, button, link) => {
+          calls.push([blockId, button, link]);
+          return linkFor?.(button);
+        },
+        forget: (blockId) => forgotten.push(blockId),
+      },
+      clickTip: () => tip,
+    });
+  });
+  afterEach(async () => {
+    await d.stop();
+    removeDir(dir);
+  });
+
+  async function run(sid: string, term?: string): Promise<string> {
+    await request(d.port, `/start?${qs({ cmd: `echo ${sid}`, pwd: '/', sid, ...(term ? { term } : {}) })}`);
+    return (await request(d.port, `/end?exitCode=0&sid=${sid}`)).body;
+  }
+
+  it('links each Windows Terminal button to a shortcut for its clipcmd:// link', async () => {
+    const body = await run('wt1', 'wt');
+    const id = d.ringBuffer.getAll()[0].id;
+    expect(calls).toEqual([
+      [id, 'cmd', `${urlScheme()}://copy?id=${id}&type=cmd`],
+      [id, 'select', `${urlScheme()}://select?id=${id}`],
+    ]);
+    expect(body).toContain('\x1b]8;;file:///C:/links/cmd.lnk\x07[COPY CMD]');
+    expect(body).toContain('\x1b]8;;file:///C:/links/select.lnk\x07[+]');
+    expect(body).not.toContain(`${urlScheme()}://`);
+  });
+
+  it('keeps clipcmd:// links elsewhere, and when no shortcut could be written', async () => {
+    expect(await run('vs', 'vscode')).toContain(`${urlScheme()}://copy?id=`);
+    expect(await run('plain')).toContain(`${urlScheme()}://copy?id=`);
+    expect(calls).toEqual([]);
+    linkFor = () => undefined;
+    expect(await run('wt2', 'wt')).toContain(`${urlScheme()}://copy?id=`);
+  });
+
+  it('removes the shortcuts of commands that fall out of the history', async () => {
+    await run('a', 'wt');
+    const first = d.ringBuffer.getAll()[0].id;
+    await run('b', 'wt');
+    expect(forgotten).toEqual([]);
+    await run('c', 'wt'); // capacity 2: the first block is evicted
+    expect(forgotten).toEqual([first]);
+  });
+
+  it('adds the click tip to a session’s first buttons only', async () => {
+    tip = 'clipcmd: hold Ctrl and click a button to copy.';
+    expect(await run('s1', 'wt')).toContain(tip);
+    expect(await run('s1', 'wt')).not.toContain(tip);
+    expect(await run('s2', 'wt')).toContain(tip);
+    tip = undefined;
+    expect(await run('s3', 'wt')).not.toContain('hold Ctrl');
+  });
+});
+
 describe('DaemonServer lifecycle', () => {
   let dir: string;
   const saved = process.env.CLIPCMD_CONFIG_DIR;

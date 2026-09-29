@@ -50,7 +50,7 @@ Something off? `clipcmd doctor` checks the setup and tells you how to fix it.
 
 ## How it works
 
-A small daemon listens on `127.0.0.1`. A hook in your shell config reports each command and prints the buttons when it finishes. The buttons are `clipcmd://` links handled by a tiny per-user link handler, so a click copies silently — no browser, no window. To know what a command printed, interactive sessions run inside a pseudo-terminal recorder (`clipcmd shell`, automatic), or, in VS Code, the extension reads the output from VS Code's shell integration. Nothing leaves your machine.
+A small daemon listens on `127.0.0.1`. A hook in your shell config reports each command and prints the buttons when it finishes. The buttons are `clipcmd://` links handled by a tiny per-user link handler (in Windows Terminal, which cannot open those, shortcut links to the same handler), so a Ctrl+click (Cmd+click on macOS) copies silently — no browser, no window. To know what a command printed, interactive sessions run inside a pseudo-terminal recorder (`clipcmd shell`, automatic), or, in VS Code, the extension reads the output from VS Code's shell integration. Nothing leaves your machine.
 
 Details: [cli/README.md](cli/README.md).
 

@@ -14,8 +14,13 @@ _clipcmd_port_file="$_clipcmd_dir/port"
 
 # `clipcmd shell` sets CLIPCMD_SESSION; it captures this session's output
 _clipcmd_session="${CLIPCMD_SESSION:-$$}"
+# The terminal decides which links the buttons need (Windows Terminal: shortcuts)
 _clipcmd_term=""
-[[ "${TERM_PROGRAM:-}" == vscode ]] && _clipcmd_term=vscode
+if [[ "${TERM_PROGRAM:-}" == vscode ]]; then
+  _clipcmd_term=vscode
+elif [[ -n "${WT_SESSION:-}" ]]; then
+  _clipcmd_term=wt
+fi
 
 typeset -gi _clipcmd_started=0    # 1 after /start was sent for the running command
 typeset -gi _clipcmd_seq=0        # command counter; ties `clipcmd shell` output to the command

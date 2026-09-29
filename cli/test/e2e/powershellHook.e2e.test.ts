@@ -226,6 +226,17 @@ for (const edition of EDITIONS) {
       expect(stripAnsi(screen)).toContain('NEW[True]>');
     }, 120000);
 
+    it('tells the daemon which terminal it runs in (Windows Terminal needs other links)', async () => {
+      await runPs(PROMPT + HOOK, ['Write-Output one'], { env: { WT_SESSION: 'wt-1' } });
+      await runPs(PROMPT + HOOK, ['Write-Output two'], { env: { WT_SESSION: 'wt-1', TERM_PROGRAM: 'vscode' } });
+      await runPs(PROMPT + HOOK, ['Write-Output three']);
+      expect(daemon.ringBuffer.getAll().map((b) => [b.command, b.term])).toEqual([
+        ['Write-Output one', 'wt'],
+        ['Write-Output two', 'vscode'],
+        ['Write-Output three', undefined],
+      ]);
+    }, 180000);
+
     it('stays silent without a daemon', async () => {
       fs.rmSync(path.join(dir, 'port'));
       const { screen } = await runPs(PROMPT + HOOK, ['Write-Output a', 'Write-Output b']);

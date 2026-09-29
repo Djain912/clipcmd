@@ -71,6 +71,18 @@ for (const shell of SHELLS) {
       expect(out.split('[COPY CMD]').length - 1).toBe(shell.name === 'fish' ? 4 : 3); // fish: + the `exit`
     });
 
+    it('tells the daemon which terminal it runs in (Windows Terminal needs other links)', async () => {
+      await run('echo one', { WT_SESSION: 'wt-1' });
+      await run('echo two', { WT_SESSION: 'wt-1', TERM_PROGRAM: 'vscode' });
+      await run('echo three');
+      const recorded = daemon.ringBuffer.getAll().filter((b) => b.command !== 'exit');
+      expect(recorded.map((b) => [b.command, b.term])).toEqual([
+        ['echo one', 'wt'],
+        ['echo two', 'vscode'],
+        ['echo three', undefined],
+      ]);
+    });
+
     it('stays silent without a daemon', async () => {
       fs.rmSync(path.join(dir, 'port'));
       const out = await run('echo hi');

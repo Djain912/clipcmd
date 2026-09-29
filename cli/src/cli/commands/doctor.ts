@@ -21,6 +21,7 @@ import {
 import { isPowerShell, SUPPORTED_SHELLS, SupportedShell } from '../../installer/shellDetector';
 import { findWindowsTerminalSettings, parseJsonc } from '../../installer/windowsTerminal';
 import { describePid, getDaemonState } from '../../shared/daemonClient';
+import { getShortcutTemplatePath } from '../../shared/windowsShortcuts';
 import { loadNodePty } from '../../shared/nodePty';
 import { isStoppedByUser } from './start';
 
@@ -140,7 +141,20 @@ export async function runChecks(): Promise<Check[]> {
   }
 
   if (process.platform === 'win32') {
-    for (const file of findWindowsTerminalSettings()) {
+    const terminals = findWindowsTerminalSettings();
+    // Windows Terminal (a Store app) cannot open clipcmd:// links; its buttons are shortcuts
+    if (terminals.length > 0 && isProtocolHandlerInstalled()) {
+      checks.push(
+        fs.existsSync(getShortcutTemplatePath())
+          ? { level: 'ok', title: 'Windows Terminal buttons copy through shortcut links' }
+          : {
+              level: 'fail',
+              title: 'Buttons cannot copy in Windows Terminal (the shortcut template is missing)',
+              fix: 'Run `clipcmd init`.',
+            }
+      );
+    }
+    for (const file of terminals) {
       let allowed = false;
       try {
         const settings = parseJsonc(fs.readFileSync(file, 'utf8')) as { safeUriSchemes?: unknown };

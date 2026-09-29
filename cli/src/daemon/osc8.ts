@@ -23,6 +23,11 @@ export interface ButtonOptions {
   scheme?: LinkScheme;
   /** Output was (or will be) captured, so the output buttons are useful. */
   withOutput?: boolean;
+  /**
+   * Replaces a button's link, e.g. with a Windows Terminal shortcut. `button`
+   * is cmd, output, both or select.
+   */
+  wrap?: (button: string, url: string) => string;
 }
 
 /** URL for a daemon action, e.g. linkFor('copy', 'id=..&type=cmd', ...). */
@@ -40,15 +45,16 @@ export function linkFor(action: string, query: string, port: number, scheme: Lin
 export function buildButtonsString(block: Block, port: number, options: ButtonOptions = {}): string {
   const scheme = options.scheme ?? 'http';
   const withOutput = options.withOutput ?? true;
+  const wrap = options.wrap ?? ((_button: string, url: string) => url);
   const id = encodeURIComponent(block.id);
-  const copy = (type: string) => linkFor('copy', `id=${id}&type=${type}`, port, scheme);
+  const copy = (type: string) => wrap(type, linkFor('copy', `id=${id}&type=${type}`, port, scheme));
 
   const buttons = [buildOsc8Button('[COPY CMD]', copy('cmd'))];
   if (withOutput) {
     buttons.push(buildOsc8Button('[COPY OUTPUT]', copy('output')));
     buttons.push(buildOsc8Button('[COPY BOTH]', copy('both')));
   }
-  buttons.push(buildOsc8Button('[+]', linkFor('select', `id=${id}`, port, scheme)));
+  buttons.push(buildOsc8Button('[+]', wrap('select', linkFor('select', `id=${id}`, port, scheme))));
 
   return `${buttons.join(' ')}\n`;
 }

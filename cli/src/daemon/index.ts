@@ -6,11 +6,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ConfigManager } from '../config/config';
-import { getLogFile } from '../config/paths';
+import { getConfigDir, getLogFile } from '../config/paths';
 import { acquireDaemonLock, releaseDaemonLock } from '../config/daemonLock';
 import { isProcessAlive, readPortFile, removePortFileIfOwned } from '../config/portFile';
 import { checkHealth } from '../shared/daemonClient';
-import { isProtocolHandlerInstalled } from '../installer/protocolHandler';
+import { getHandlerScriptPath, isProtocolHandlerInstalled } from '../installer/protocolHandler';
+import { lazyButtonShortcuts } from '../shared/windowsShortcuts';
 import { RingBuffer } from './ringBuffer';
 import { MultiSelectQueue } from './multiSelectQueue';
 import { FileTailCapture } from './capture';
@@ -45,6 +46,27 @@ function rotateLog(): void {
   } catch {
     // Missing log file or rename failure — keep appending
   }
+}
+
+/** Terminal sessions that get the how-to-click tip, counted across daemon runs. */
+const CLICK_TIP_SESSIONS = 5;
+
+/** Terminals open links on Ctrl+click (Cmd+click on macOS), which is easy to miss. */
+function clickTip(): string | undefined {
+  const file = path.join(getConfigDir(), 'click-tips');
+  let shown = 0;
+  try {
+    shown = Number.parseInt(fs.readFileSync(file, 'utf8'), 10) || 0;
+  } catch {
+    // first time
+  }
+  if (shown >= CLICK_TIP_SESSIONS) return undefined;
+  try {
+    fs.writeFileSync(file, String(shown + 1));
+  } catch {
+    // unwritable config dir: the tip just shows again next time
+  }
+  return `clipcmd: hold ${process.platform === 'darwin' ? 'Cmd' : 'Ctrl'} and click a button to copy.`;
 }
 
 async function main(): Promise<void> {
@@ -101,6 +123,8 @@ async function main(): Promise<void> {
     // Checked per command, so `clipcmd init` takes effect without a daemon restart
     linkScheme: () =>
       config.links === 'auto' ? (isProtocolHandlerInstalled() ? 'clipcmd' : 'http') : config.links,
+    buttonLinks: lazyButtonShortcuts(getHandlerScriptPath(), log),
+    clickTip,
   });
 
   // Requirement 1.6: release the port and delete the Port_File on termination.

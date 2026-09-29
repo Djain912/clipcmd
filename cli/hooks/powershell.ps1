@@ -23,7 +23,8 @@ if ($ExecutionContext.SessionState.LanguageMode -eq 'FullLanguage' -and
     # `clipcmd shell` sets CLIPCMD_SESSION; it captures this session's output
     Session          = if ($env:CLIPCMD_SESSION) { $env:CLIPCMD_SESSION } else { "$PID" }
     InClipcmdShell   = [bool]$env:CLIPCMD_SESSION
-    Term             = if ($env:TERM_PROGRAM -eq 'vscode') { 'vscode' } else { '' }
+    # The terminal decides which links the buttons need (Windows Terminal: shortcuts)
+    Term             = if ($env:TERM_PROGRAM -eq 'vscode') { 'vscode' } elseif ($env:WT_SESSION) { 'wt' } else { '' }
     Seq              = 0
     Started          = $false
     RetryAt          = [datetime]::MinValue

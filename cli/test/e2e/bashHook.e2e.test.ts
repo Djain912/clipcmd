@@ -177,6 +177,17 @@ describe.skipIf(!BASH)('bash hook (end to end)', () => {
     expect(daemon.ringBuffer.getAll()[0].output).toBe('captured\n');
   });
 
+  it('tells the daemon which terminal it runs in (Windows Terminal needs other links)', async () => {
+    await runBash(HOOK, 'echo one', { env: { WT_SESSION: 'wt-1' } });
+    await runBash(HOOK, 'echo two', { env: { WT_SESSION: 'wt-1', TERM_PROGRAM: 'vscode' } }); // VS Code started from WT
+    await runBash(HOOK, 'echo three');
+    expect(daemon.ringBuffer.getAll().map((b) => [b.command, b.term])).toEqual([
+      ['echo one', 'wt'],
+      ['echo two', 'vscode'],
+      ['echo three', undefined],
+    ]);
+  });
+
   it('stays silent and fast when no daemon is registered', async () => {
     fs.rmSync(path.join(dir, 'port'));
     const run = await runBash(HOOK, 'echo a\necho b\necho c');

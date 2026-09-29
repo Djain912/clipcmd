@@ -104,6 +104,7 @@ function setUpSilentLinks(): void {
     return;
   }
   console.log(`Copy buttons now copy silently (${scheme}:// links, registered for your user).`);
+  console.log(`Hold ${process.platform === 'darwin' ? 'Cmd' : 'Ctrl'} and click a button to copy.`);
   if (process.platform !== 'win32') return;
 
   for (const { file, status } of allowSchemeInWindowsTerminal(scheme)) {

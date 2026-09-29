@@ -6,6 +6,7 @@ import { MultiSelectQueue } from './multiSelectQueue';
 import { CaptureSource, isValidSessionId } from './capture';
 import { ClipboardWriter } from './clipboard';
 import { buildButtonsString, LinkScheme } from './osc8';
+import type { ButtonLinks } from '../shared/windowsShortcuts';
 import { removePortFileIfOwned, writePortFile } from '../config/portFile';
 
 /** Session used by hooks that do not send a `sid` parameter. */
@@ -45,6 +46,10 @@ export interface DaemonServerOptions {
   maxOutputBytes?: number;
   /** Clock, for tests. */
   now?: () => number;
+  /** Windows Terminal button shortcuts (see shared/windowsShortcuts.ts); Windows only. */
+  buttonLinks?: ButtonLinks;
+  /** A how-to-click tip for a session's first buttons, or undefined for none. */
+  clickTip?: () => string | undefined;
 }
 
 /** Formats one block as `$ {command}\n{output}`. */
@@ -65,6 +70,9 @@ export class DaemonServer {
 
   /** Sessions that were already told how to enable output capture. */
   private readonly hintedSessions = new Set<string>();
+
+  /** Sessions that already got their first buttons (and maybe the click tip). */
+  private readonly tippedSessions = new Set<string>();
 
   /** When a VS Code window running the clipcmd extension last checked in. */
   private vscodeSeenAt = -Infinity;
@@ -89,6 +97,8 @@ export class DaemonServer {
   private readonly linkScheme: () => LinkScheme;
   private readonly maxOutputBytes: number;
   private readonly now: () => number;
+  private readonly buttonLinks: ButtonLinks | undefined;
+  private readonly clickTip: () => string | undefined;
 
   constructor(
     private readonly ringBuffer: RingBuffer,
@@ -106,6 +116,8 @@ export class DaemonServer {
     this.linkScheme = options.linkScheme ?? (() => 'http');
     this.maxOutputBytes = options.maxOutputBytes ?? 1024 * 1024;
     this.now = options.now ?? Date.now;
+    this.buttonLinks = options.buttonLinks;
+    this.clickTip = options.clickTip ?? (() => undefined);
   }
 
   /**
@@ -314,7 +326,20 @@ export class DaemonServer {
     }
 
     const withOutput = this.outputAvailable(block);
-    let body = buildButtonsString(block, this.port, { scheme: this.linkScheme(), withOutput });
+    const scheme = this.linkScheme();
+    // Windows Terminal cannot open clipcmd:// links; its buttons are shortcuts
+    const links = this.buttonLinks;
+    const wrap =
+      scheme === 'clipcmd' && block.term === 'wt' && links
+        ? (button: string, url: string) => links.urlFor(block.id, button, url) ?? url
+        : undefined;
+    let body = buildButtonsString(block, this.port, { scheme, withOutput, wrap });
+    if (!this.tippedSessions.has(sid)) {
+      if (this.tippedSessions.size >= 1024) this.tippedSessions.clear();
+      this.tippedSessions.add(sid);
+      const tip = this.clickTip();
+      if (tip) body += `\x1b[2m${tip}\x1b[0m\n`;
+    }
     if (!withOutput && !this.hintedSessions.has(sid)) {
       if (this.hintedSessions.size >= 1024) this.hintedSessions.clear();
       this.hintedSessions.add(sid);
@@ -568,6 +593,7 @@ export class DaemonServer {
     const evicted = this.ringBuffer.push(block);
     if (evicted) {
       this.multiSelectQueue.remove(evicted.id);
+      this.buttonLinks?.forget(evicted.id);
     }
     return block;
   }

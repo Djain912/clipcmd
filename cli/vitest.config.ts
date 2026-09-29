@@ -33,6 +33,8 @@ export default defineConfig({
       CLIPCMD_CONFIG_DIR: FAKE_CONFIG_DIR,
       CLIPCMD_AUTOSTART: '0',
       CLIPCMD_AUTOSHELL: '0',
+      // The hooks change their links inside Windows Terminal; tests opt in explicitly
+      WT_SESSION: '',
       // `uninstall --all` and `doctor` look at every shell, PowerShell included
       CLIPCMD_POWERSHELL_PROFILE: FAKE_POWERSHELL_PROFILE,
       LOCALAPPDATA: FAKE_LOCALAPPDATA,

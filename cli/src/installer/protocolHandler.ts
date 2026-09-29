@@ -3,6 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { getConfigDir, getPortFile } from '../config/paths';
+import { createShortcutTemplate, removeShortcutFiles } from '../shared/windowsShortcuts';
 
 /**
  * `clipcmd://` link handler, so a click on a copy button copies silently
@@ -117,12 +118,20 @@ function registerWindows(scheme: string): string | undefined {
       return `Could not register ${scheme}:// links: ${output}`;
     }
   }
+  // Windows Terminal (a Store app) cannot open these links; its buttons are
+  // shortcuts made from this template (see shared/windowsShortcuts.ts)
+  const shortcutError = createShortcutTemplate();
+  if (shortcutError) {
+    unregisterWindows(scheme);
+    return shortcutError;
+  }
   return undefined;
 }
 
 function unregisterWindows(scheme: string): void {
   run('reg.exe', ['delete', `HKCU\\Software\\Classes\\${scheme}`, '/f']);
   fs.rmSync(getHandlerScriptPath(), { force: true });
+  removeShortcutFiles();
 }
 
 /** The command Windows runs for `{scheme}://` links, or undefined if unregistered. */

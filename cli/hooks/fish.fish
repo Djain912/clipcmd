@@ -15,8 +15,13 @@ set -g _clipcmd_port_file "$_clipcmd_dir/port"
 # `clipcmd shell` sets CLIPCMD_SESSION; it captures this session's output
 set -g _clipcmd_session $fish_pid
 set -q CLIPCMD_SESSION; and set -g _clipcmd_session $CLIPCMD_SESSION
+# The terminal decides which links the buttons need (Windows Terminal: shortcuts)
 set -g _clipcmd_term ''
-test "$TERM_PROGRAM" = vscode; and set -g _clipcmd_term vscode
+if test "$TERM_PROGRAM" = vscode
+    set -g _clipcmd_term vscode
+else if test -n "$WT_SESSION"
+    set -g _clipcmd_term wt
+end
 
 set -g _clipcmd_started 0
 set -g _clipcmd_seq 0    # command counter; ties `clipcmd shell` output to the command

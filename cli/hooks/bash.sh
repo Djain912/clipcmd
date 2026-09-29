@@ -22,8 +22,13 @@ if [[ -z "${CLIPCMD_SESSION:-}" && -r "/proc/$$/winpid" ]]; then
   # Git Bash / Cygwin: use the Windows pid, which is what VS Code reports
   IFS= read -r _clipcmd_session < "/proc/$$/winpid" 2>/dev/null || _clipcmd_session=$$
 fi
+# The terminal decides which links the buttons need (Windows Terminal: shortcuts)
 _clipcmd_term=""
-[[ "${TERM_PROGRAM:-}" == vscode ]] && _clipcmd_term=vscode
+if [[ "${TERM_PROGRAM:-}" == vscode ]]; then
+  _clipcmd_term=vscode
+elif [[ -n "${WT_SESSION:-}" ]]; then
+  _clipcmd_term=wt
+fi
 
 _clipcmd_ready=0      # 1 while waiting at the prompt: the next DEBUG trap is a user command
 _clipcmd_started=0    # 1 after /start was sent for the running command

@@ -1,6 +1,7 @@
 /**
  * Windows end to end: the clipcmd:// click handler (registered for real under
- * HKCU with a throwaway scheme name, launched the way terminals open links),
+ * HKCU with a throwaway scheme name, launched through ShellExecute), the
+ * .lnk shortcuts that Windows Terminal buttons use instead,
  * `clipcmd init` / `uninstall` against a temporary Windows Terminal settings
  * file, PowerShell's automatic `clipcmd shell`, and the whole flow of
  * capturing a command's output and clicking [COPY BOTH].
@@ -21,6 +22,7 @@ import {
   unregisterProtocolHandler,
 } from '../../src/installer/protocolHandler';
 import { parseJsonc } from '../../src/installer/windowsTerminal';
+import { fileUrl, getButtonShortcutDir, getShortcutTemplatePath, lazyButtonShortcuts } from '../../src/shared/windowsShortcuts';
 import {
   BIN,
   makeTempDir,
@@ -38,7 +40,13 @@ const onWindows = process.platform === 'win32';
 const pty = tryLoadNodePty();
 const SCHEME = `clipcmd-test-${randomBytes(4).toString('hex')}`;
 
-/** Opens a URL the way terminals do (ShellExecute). */
+/**
+ * Opens a URL through ShellExecute, as unpackaged terminals (VS Code, ...) do.
+ * Not the same as Windows Terminal: a Store (packaged) app does not see the
+ * user's HKCU registrations, so a clipcmd:// link clicked there ends in "Get
+ * an app to open this link". That is why Windows Terminal buttons are .lnk
+ * shortcuts; see the shortcut test below and src/shared/windowsShortcuts.ts.
+ */
 function openUrl(url: string): void {
   spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', `Start-Process '${url}'`], {
     windowsHide: true,
@@ -159,6 +167,48 @@ describe.skipIf(!onWindows)('Windows integration (end to end)', () => {
     expect(getRegisteredCommand(SCHEME)).toBeUndefined();
   }, 90000);
 
+  it('Windows Terminal buttons are shortcuts that copy through the daemon when opened', async () => {
+    expect(registerProtocolHandler(SCHEME)).toBeUndefined(); // also writes the shortcut template
+    expect(fs.existsSync(getShortcutTemplatePath())).toBe(true);
+    const d = await startTestDaemon({
+      configDir: process.env.CLIPCMD_CONFIG_DIR!,
+      writePortFile: true,
+      linkScheme: () => 'clipcmd',
+      buttonLinks: lazyButtonShortcuts(getHandlerScriptPath(), () => undefined),
+    });
+    try {
+      // A `clipcmd shell` session, so all four buttons show
+      fs.mkdirSync(d.sessionsDir, { recursive: true });
+      fs.writeFileSync(path.join(d.sessionsDir, 'wt.log'), '');
+      await new Promise((r) => http.get(`http://127.0.0.1:${d.port}/start?cmd=git%20log&pwd=%2F&sid=wt&seq=1&term=wt`, r));
+      await new Promise<void>((resolve) => {
+        const req = http.request({ host: '127.0.0.1', port: d.port, path: '/output?sid=wt&seq=1', method: 'POST' }, () => resolve());
+        req.end('commit 1a2b3c');
+      });
+      const body = await new Promise<string>((resolve) =>
+        http.get(`http://127.0.0.1:${d.port}/end?exitCode=0&sid=wt`, (res) => {
+          let b = '';
+          res.on('data', (c) => (b += c));
+          res.on('end', () => resolve(b));
+        })
+      );
+      const id = d.ringBuffer.getAll()[0].id;
+      const links = [...body.matchAll(/\x1b\]8;;([^\x07]+)\x07/g)].map((m) => m[1]).filter((l) => l !== '');
+      expect(links).toEqual(['cmd', 'output', 'both', 'select'].map((b) => fileUrl(path.join(getButtonShortcutDir(), `${id}-${b}.lnk`))));
+
+      // What a Ctrl+click in Windows Terminal does with a file:// link
+      openUrl(links[2]);
+      await waitFor(() => d.clipboard.last === '$ git log\ncommit 1a2b3c', 15000);
+      openUrl(links[0]);
+      await waitFor(() => d.clipboard.last === 'git log', 15000);
+    } finally {
+      await d.stop();
+    }
+    unregisterProtocolHandler(SCHEME);
+    expect(fs.existsSync(getShortcutTemplatePath())).toBe(false);
+    expect(fs.existsSync(getButtonShortcutDir())).toBe(false);
+  }, 90000);
+
   it('`clipcmd init` sets up silent links (+ Windows Terminal) and `uninstall` undoes it', async () => {
     const home = path.join(dir, 'home');
     const localAppData = path.join(dir, 'LocalAppData');
@@ -181,6 +231,15 @@ describe.skipIf(!onWindows)('Windows integration (end to end)', () => {
     expect(init.stdout).toContain(`Windows Terminal: allowed ${SCHEME}:// links without confirmation`);
     expect(getRegisteredCommand(SCHEME)).toContain(getHandlerScriptPath());
     expect((parseJsonc(fs.readFileSync(wtSettings, 'utf8')) as { safeUriSchemes: string[] }).safeUriSchemes).toEqual([SCHEME]);
+    expect(fs.existsSync(getShortcutTemplatePath())).toBe(true);
+
+    let doctor = await cli(['doctor'], env);
+    expect(doctor.stdout).toContain('[ OK ] Windows Terminal buttons copy through shortcut links');
+    fs.rmSync(getShortcutTemplatePath());
+    doctor = await cli(['doctor'], env);
+    expect(doctor.stdout).toContain('[FAIL] Buttons cannot copy in Windows Terminal (the shortcut template is missing)');
+    expect((await cli(['init', 'powershell'], env)).code).toBe(0);
+    expect(fs.existsSync(getShortcutTemplatePath())).toBe(true);
 
     // The daemon now emits clipcmd:// links (links: "auto")
     const start = await cli(['start'], env);
@@ -200,6 +259,7 @@ describe.skipIf(!onWindows)('Windows integration (end to end)', () => {
     const uninstall = await cli(['uninstall', 'powershell'], env);
     expect(uninstall.code).toBe(0);
     expect(uninstall.stdout).toContain(`Removed the ${SCHEME}:// link handler`);
+    expect(fs.existsSync(getShortcutTemplatePath())).toBe(false);
     expect(getRegisteredCommand(SCHEME)).toBeUndefined();
     expect(fs.readFileSync(wtSettings, 'utf8')).toBe(original);
   }, 120000);
