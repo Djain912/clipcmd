@@ -24,7 +24,7 @@ export interface ButtonOptions {
   /** Output was (or will be) captured, so the output buttons are useful. */
   withOutput?: boolean;
   /**
-   * Replaces a button's link, e.g. with a Windows Terminal shortcut. `button`
+   * Replaces a button's link, e.g. with a Windows shortcut. `button`
    * is cmd, output, both or select.
    */
   wrap?: (button: string, url: string) => string;

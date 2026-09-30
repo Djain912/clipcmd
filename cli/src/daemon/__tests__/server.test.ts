@@ -514,7 +514,7 @@ describe('POST /output (output captured by clipcmd shell or the VS Code extensio
   });
 });
 
-describe('Windows Terminal buttons and the click tip', () => {
+describe('Windows shortcut buttons and the click tip', () => {
   let dir: string;
   let d: TestDaemon;
   const calls: Array<[string, string, string]> = [];
@@ -564,12 +564,19 @@ describe('Windows Terminal buttons and the click tip', () => {
     expect(body).not.toContain(`${urlScheme()}://`);
   });
 
-  it('keeps clipcmd:// links elsewhere, and when no shortcut could be written', async () => {
+  it('also uses shortcuts when the terminal is unknown (Windows Terminal adopting a Start menu window)', async () => {
+    const body = await run('plain');
+    expect(calls.map((c) => c[1])).toEqual(['cmd', 'select']);
+    expect(body).toContain('\x1b]8;;file:///C:/links/cmd.lnk\x07[COPY CMD]');
+    expect(body).not.toContain(`${urlScheme()}://`);
+  });
+
+  it('keeps clipcmd:// links in VS Code, and when no shortcut could be written', async () => {
     expect(await run('vs', 'vscode')).toContain(`${urlScheme()}://copy?id=`);
-    expect(await run('plain')).toContain(`${urlScheme()}://copy?id=`);
     expect(calls).toEqual([]);
     linkFor = () => undefined;
     expect(await run('wt2', 'wt')).toContain(`${urlScheme()}://copy?id=`);
+    expect(await run('plain2')).toContain(`${urlScheme()}://copy?id=`);
   });
 
   it('removes the shortcuts of commands that fall out of the history', async () => {

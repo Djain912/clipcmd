@@ -12,6 +12,7 @@ import * as http from 'node:http';
 import * as net from 'node:net';
 import * as path from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { writePortFile } from '../../src/config/portFile';
 import {
@@ -22,7 +23,13 @@ import {
   unregisterProtocolHandler,
 } from '../../src/installer/protocolHandler';
 import { parseJsonc } from '../../src/installer/windowsTerminal';
-import { fileUrl, getButtonShortcutDir, getShortcutTemplatePath, lazyButtonShortcuts } from '../../src/shared/windowsShortcuts';
+import {
+  fileUrl,
+  getButtonShortcutDir,
+  getShortcutArguments,
+  getShortcutTemplatePath,
+  lazyButtonShortcuts,
+} from '../../src/shared/windowsShortcuts';
 import {
   BIN,
   makeTempDir,
@@ -234,14 +241,15 @@ describe.skipIf(!onWindows)('Windows integration (end to end)', () => {
     expect(fs.existsSync(getShortcutTemplatePath())).toBe(true);
 
     let doctor = await cli(['doctor'], env);
-    expect(doctor.stdout).toContain('[ OK ] Windows Terminal buttons copy through shortcut links');
+    expect(doctor.stdout).toContain('[ OK ] Buttons copy through shortcut links (Windows Terminal needs them)');
     fs.rmSync(getShortcutTemplatePath());
     doctor = await cli(['doctor'], env);
     expect(doctor.stdout).toContain('[FAIL] Buttons cannot copy in Windows Terminal (the shortcut template is missing)');
     expect((await cli(['init', 'powershell'], env)).code).toBe(0);
     expect(fs.existsSync(getShortcutTemplatePath())).toBe(true);
 
-    // The daemon now emits clipcmd:// links (links: "auto")
+    // The daemon now emits buttons that run the clipcmd:// handler (links: "auto"). Without a
+    // terminal marker (Windows Terminal adopting a Start menu window) they are shortcuts
     const start = await cli(['start'], env);
     expect(start.code).toBe(0);
     const port = Number(fs.readFileSync(path.join(process.env.CLIPCMD_CONFIG_DIR!, 'port'), 'utf8').split(':')[0]);
@@ -253,8 +261,10 @@ describe.skipIf(!onWindows)('Windows integration (end to end)', () => {
         res.on('end', () => resolve(b));
       })
     );
+    const shortcut = /\x1b\]8;;(file:[^\x07]+-cmd\.lnk)\x07/.exec(buttons)?.[1];
+    const args = shortcut ? getShortcutArguments(fs.readFileSync(fileURLToPath(shortcut))) : undefined;
     await cli(['stop'], env);
-    expect(buttons).toContain(`${SCHEME}://copy?id=`);
+    expect(args).toContain(`${SCHEME}://copy?id=`);
 
     const uninstall = await cli(['uninstall', 'powershell'], env);
     expect(uninstall.code).toBe(0);

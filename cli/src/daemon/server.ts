@@ -46,7 +46,7 @@ export interface DaemonServerOptions {
   maxOutputBytes?: number;
   /** Clock, for tests. */
   now?: () => number;
-  /** Windows Terminal button shortcuts (see shared/windowsShortcuts.ts); Windows only. */
+  /** Button shortcuts (see shared/windowsShortcuts.ts); Windows only. */
   buttonLinks?: ButtonLinks;
   /** A how-to-click tip for a session's first buttons, or undefined for none. */
   clickTip?: () => string | undefined;
@@ -327,10 +327,13 @@ export class DaemonServer {
 
     const withOutput = this.outputAvailable(block);
     const scheme = this.linkScheme();
-    // Windows Terminal cannot open clipcmd:// links; its buttons are shortcuts
+    // Windows Terminal cannot open clipcmd:// links, and it cannot always be
+    // detected (no WT_SESSION when it is the default terminal and adopts a
+    // window started from the Start menu). Buttons are shortcuts everywhere on
+    // Windows except VS Code, which opens file:// links as documents.
     const links = this.buttonLinks;
     const wrap =
-      scheme === 'clipcmd' && block.term === 'wt' && links
+      scheme === 'clipcmd' && block.term !== 'vscode' && links
         ? (button: string, url: string) => links.urlFor(block.id, button, url) ?? url
         : undefined;
     let body = buildButtonsString(block, this.port, { scheme, withOutput, wrap });

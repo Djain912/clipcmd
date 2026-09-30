@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { getConfigDir } from '../config/paths';
 
 /**
- * Copy buttons for Windows Terminal, as .lnk shortcuts.
+ * Copy buttons on Windows, as .lnk shortcuts.
  *
  * Windows Terminal is a packaged (Store) app, and Windows resolves the links
  * a packaged app opens without the current user's own registrations
@@ -12,8 +12,12 @@ import { getConfigDir } from '../config/paths';
  * "Get an app to open this 'clipcmd' link", however the scheme is registered.
  * Windows Terminal does open file:// links (.lnk is not in PATHEXT, so
  * without a warning), and a shortcut runs its target directly, without any
- * lookup. So in Windows Terminal each button links to a small shortcut that
- * runs the clipcmd:// handler (wscript.exe + open.js) with that button's link.
+ * lookup. So each button links to a small shortcut that runs the clipcmd://
+ * handler (wscript.exe + open.js) with that button's link. This applies to
+ * every terminal but VS Code: Windows Terminal is not always recognizable
+ * (no WT_SESSION when, as the default terminal, it adopts a window started
+ * from the Start menu), and other terminals open the shortcuts through
+ * ShellExecute like any link.
  */
 
 /** Folder of the per-button shortcuts. */
@@ -62,7 +66,7 @@ export function createShortcutTemplate(): string | undefined {
   const { file, args } = templateCommand();
   const result = spawnSync(file, args, { encoding: 'utf8', windowsHide: true, timeout: 30000 });
   if (result.status === 0 && fs.existsSync(getShortcutTemplatePath())) return undefined;
-  return `Could not create the Windows Terminal button shortcut: ${`${result.stderr ?? ''}${result.error?.message ?? ''}`.trim() || `exit code ${result.status}`}`;
+  return `Could not create the button shortcut template: ${`${result.stderr ?? ''}${result.error?.message ?? ''}`.trim() || `exit code ${result.status}`}`;
 }
 
 export function removeShortcutFiles(): void {
@@ -185,8 +189,8 @@ export class ButtonShortcuts implements ButtonLinks {
 }
 
 /**
- * The daemon's button shortcuts (Windows only), set up on first use: most
- * sessions never need them, and `clipcmd init` may run after the daemon.
+ * The daemon's button shortcuts (Windows only), set up on first use:
+ * `clipcmd init` may run after the daemon.
  */
 export function lazyButtonShortcuts(handlerScript: string, log: (message: string) => void): ButtonLinks | undefined {
   if (process.platform !== 'win32') return undefined;
@@ -200,7 +204,7 @@ export function lazyButtonShortcuts(handlerScript: string, log: (message: string
       if (error) throw new Error(error);
       shortcuts = new ButtonShortcuts(fs.readFileSync(templatePath), handlerScript, getButtonShortcutDir(), log);
     } catch (err) {
-      log(`Windows Terminal buttons fall back to clipcmd:// links: ${err instanceof Error ? err.message : String(err)}`);
+      log(`Buttons fall back to clipcmd:// links: ${err instanceof Error ? err.message : String(err)}`);
       shortcuts = null;
     }
     return shortcuts;

@@ -46,7 +46,7 @@ Requires Node.js 20 or newer.
 `clipcmd` runs a small background **daemon** on `127.0.0.1`. A **hook** in your shell config tells it about every command and prints the buttons when the command finishes. The buttons are [OSC 8 hyperlinks](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda); `clipcmd init` registers a `clipcmd://` link handler for your user account, so a click just tells the daemon what to copy:
 
 - **Windows**: under `HKCU\Software\Classes\clipcmd` (no admin rights); a click runs a tiny script with `wscript.exe`, which shows no window. `clipcmd init` also adds `"clipcmd"` to Windows Terminal's `safeUriSchemes` so it does not ask before each click (the original `settings.json` is backed up to `~/.config/clipcmd/backups/`).
-- **Windows Terminal**: it is a Microsoft Store app, and Windows does not let Store apps open link handlers registered for a single user (a `clipcmd://` link would only offer to "Get an app" from the Store). So in Windows Terminal (detected with `WT_SESSION`), each button is a `file:///` link to a small shortcut in `~/.config/clipcmd/links/` that runs the same script with the same `clipcmd://` link. Windows Terminal opens such links without asking; the daemon deletes old shortcuts along with the commands it forgets.
+- **Windows Terminal**: it is a Microsoft Store app, and Windows does not let Store apps open link handlers registered for a single user (a `clipcmd://` link would only offer to "Get an app" from the Store). Windows Terminal cannot always be recognized either (it sets no `WT_SESSION` when, as the default terminal, it takes over a window started from the Start menu). So on Windows every button — except in VS Code, which opens `file://` links as documents — is a `file:///` link to a small shortcut in `~/.config/clipcmd/links/` that runs the same script with the same `clipcmd://` link. Windows Terminal opens such links without asking, and other terminals open them like any link; the daemon deletes old shortcuts along with the commands it forgets.
 - **Linux**: a hidden `.desktop` entry set as the default `x-scheme-handler/clipcmd` with `xdg-mime`.
 - **macOS**: a tiny background app in `~/Applications` that declares the URL scheme.
 
@@ -135,7 +135,7 @@ Start with `clipcmd doctor`: it checks Node.js, the config, the daemon, each hoo
 
 **Clicking a button does nothing** — hold Ctrl (Cmd on macOS) while you click: terminals only open links on Ctrl+click.
 
-**Windows Terminal says "Get an app to open this 'clipcmd' link"** — the buttons came from a terminal opened before `clipcmd init` (or from an older clipcmd). Open a new terminal. If new buttons do the same, run `clipcmd doctor`: it checks the shortcut template Windows Terminal buttons need (`clipcmd init` recreates it).
+**Windows Terminal says "Get an app to open this 'clipcmd' link"** — those buttons were printed before `clipcmd init`, or by an older clipcmd daemon (`clipcmd stop` then `clipcmd start` restarts it). Run a command for new buttons. If they do the same, run `clipcmd doctor`: it checks the shortcut template the buttons need (`clipcmd init` recreates it).
 
 **Clicking a button opens a browser tab** — no `clipcmd://` handler is registered (run `clipcmd init`), or `"links": "http"` is set in the config. Existing buttons keep their old links; new commands get new ones.
 

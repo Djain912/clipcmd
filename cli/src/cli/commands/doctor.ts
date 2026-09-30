@@ -141,12 +141,11 @@ export async function runChecks(): Promise<Check[]> {
   }
 
   if (process.platform === 'win32') {
-    const terminals = findWindowsTerminalSettings();
-    // Windows Terminal (a Store app) cannot open clipcmd:// links; its buttons are shortcuts
-    if (terminals.length > 0 && isProtocolHandlerInstalled()) {
+    // Windows Terminal (a Store app) cannot open clipcmd:// links; buttons outside VS Code are shortcuts
+    if (isProtocolHandlerInstalled()) {
       checks.push(
         fs.existsSync(getShortcutTemplatePath())
-          ? { level: 'ok', title: 'Windows Terminal buttons copy through shortcut links' }
+          ? { level: 'ok', title: 'Buttons copy through shortcut links (Windows Terminal needs them)' }
           : {
               level: 'fail',
               title: 'Buttons cannot copy in Windows Terminal (the shortcut template is missing)',
@@ -154,7 +153,7 @@ export async function runChecks(): Promise<Check[]> {
             }
       );
     }
-    for (const file of terminals) {
+    for (const file of findWindowsTerminalSettings()) {
       let allowed = false;
       try {
         const settings = parseJsonc(fs.readFileSync(file, 'utf8')) as { safeUriSchemes?: unknown };
