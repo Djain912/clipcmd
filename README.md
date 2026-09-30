@@ -21,6 +21,18 @@
   <a href="https://github.com/Djain912/clipcmd/raw/main/docs/clipcmd-launch.mp4"><b>▶ Download the 25-second video with sound (MP4, 6.5 MB)</b></a>
 </p>
 
+<p align="center">
+  <a href="https://www.npmjs.com/package/clipcmd"><img src="https://img.shields.io/badge/Step%201-Install%20the%20npm%20package-CB3837?style=for-the-badge&logo=npm&logoColor=white" alt="Step 1: install the clipcmd npm package"></a>
+  &nbsp;
+  <a href="https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd"><img src="https://img.shields.io/badge/Step%202-Install%20the%20VS%20Code%20extension-007ACC?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0yMC41IDExSDE5VjdjMC0xLjEtLjktMi0yLTJoLTRWMy41QzEzIDIuMTIgMTEuODggMSAxMC41IDFTOCAyLjEyIDggMy41VjVINGMtMS4xIDAtMS45OS45LTEuOTkgMnYzLjhIMy41YzEuNDkgMCAyLjcgMS4yMSAyLjcgMi43cy0xLjIxIDIuNy0yLjcgMi43SDJWMjBjMCAxLjEuOSAyIDIgMmgzLjh2LTEuNWMwLTEuNDkgMS4yMS0yLjcgMi43LTIuNyAxLjQ5IDAgMi43IDEuMjEgMi43IDIuN1YyMkgxN2MxLjEgMCAyLS45IDItMnYtNGgxLjVjMS4zOCAwIDIuNS0xLjEyIDIuNS0yLjVTMjEuODggMTEgMjAuNSAxMXoiLz48L3N2Zz4%3D" alt="Step 2: install the clipcmd VS Code extension"></a>
+</p>
+
+> [!IMPORTANT]
+> **clipcmd comes in two parts — install both:**
+>
+> 1. **The `clipcmd` package from npm** — the command, the background daemon and the shell hooks. It puts the buttons under every command, in every terminal: `npm install -g clipcmd`, then `clipcmd init`.
+> 2. **The clipcmd extension for VS Code** — makes `[COPY OUTPUT]` and `[COPY BOTH]` work in VS Code's terminal (without it, VS Code only shows `[COPY CMD]` and `[+]`): [install from the Marketplace](https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd), or search **clipcmd** in the Extensions view.
+
 Every developer has copied a command and its output into an issue, a chat or a doc by dragging the mouse over the terminal. clipcmd puts clickable buttons under every command instead:
 
 - **`[COPY CMD]`** — the command line
@@ -34,23 +46,35 @@ Works in **PowerShell** (5.1 and 7), **bash** (including Git Bash), **zsh** and 
 
 You need [Node.js](https://nodejs.org) 20 or newer (`node -v` tells you which one you have).
 
-1. Install clipcmd:
+| Part | What it does | Install |
+|---|---|---|
+| **npm package** `clipcmd` | The buttons, in every terminal | `npm install -g clipcmd`, then `clipcmd init` |
+| **VS Code extension** `djain912.clipcmd` | `[COPY OUTPUT]` and `[COPY BOTH]` in VS Code's terminal | [Marketplace](https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd), or `code --install-extension djain912.clipcmd` |
+
+1. **Install the npm package:**
 
    ```bash
    npm install -g clipcmd
    ```
 
-2. Set it up for your shell (run this in the shell you use; once per shell):
+2. **Set it up for your shell** (run this in the shell you use; once per shell):
 
    ```bash
    clipcmd init
    ```
 
-3. **Open a new terminal** window or tab.
-4. Run any command, for example `git status`. The buttons appear under its output.
-5. Hold **Ctrl** (**Cmd** on macOS) and click a button. A small **✓ Copied** confirmation appears; paste anywhere.
+3. **Install the VS Code extension** — any one of:
+   - open the [clipcmd page on the Marketplace](https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd) and click **Install**;
+   - in VS Code, open the Extensions view (**Ctrl+Shift+X**, **Cmd+Shift+X** on macOS), search **clipcmd**, and click **Install**;
+   - or run:
 
-Using **VS Code**? Also install the [clipcmd extension](https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd) so `[COPY OUTPUT]` and `[COPY BOTH]` work in its terminal.
+     ```bash
+     code --install-extension djain912.clipcmd
+     ```
+
+4. **Open a new terminal** window or tab.
+5. Run any command, for example `git status`. The buttons appear under its output.
+6. Hold **Ctrl** (**Cmd** on macOS) and click a button. A small **✓ Copied** confirmation appears; paste anywhere.
 
 Something not working? Run `clipcmd doctor`: it checks everything and says how to fix it.
 
