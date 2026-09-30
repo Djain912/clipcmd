@@ -301,8 +301,12 @@ describe.skipIf(!pty || !PS_EXE)(`PowerShell hook: daemon auto-start (${PS_EXE})
   const HOOK = fs.readFileSync(path.join(REPO_ROOT, 'hooks', 'powershell.ps1'), 'latin1');
   const PROMPT = "function global:prompt { 'READY> ' }\n";
 
-  /** Starts PowerShell with the hook, runs `commands`, and exits. */
-  async function runPs(commands: string[], extra: Record<string, string | undefined> = {}): Promise<void> {
+  /**
+   * Starts PowerShell with the hook, runs `commands`, and exits, after
+   * `beforeExit` holds if given: closing the terminal right away would kill a
+   * background start that has not got going yet.
+   */
+  async function runPs(commands: string[], extra: Record<string, string | undefined> = {}, beforeExit?: () => boolean): Promise<void> {
     const profile = path.join(home, 'profile.ps1');
     fs.writeFileSync(profile, PS_TEST_PRELUDE + PROMPT + HOOK, 'latin1');
     const term = pty!.spawn(PS_EXE!, ['-NoLogo', '-NoProfile', '-NoExit', '-Command', `. '${profile}'`], {
@@ -325,6 +329,7 @@ describe.skipIf(!pty || !PS_EXE)(`PowerShell hook: daemon auto-start (${PS_EXE})
         term.write(`${command}\r`);
         await waitFor(() => prompts() > before, 20000);
       }
+      if (beforeExit) await waitFor(beforeExit, 15000);
       term.write('exit\r');
       await waitFor(() => exited, 15000);
     } catch (err) {
@@ -344,8 +349,9 @@ describe.skipIf(!pty || !PS_EXE)(`PowerShell hook: daemon auto-start (${PS_EXE})
 
   it('starts one at shell start when the registered daemon is dead (after a reboot)', async () => {
     await registerDeadDaemon();
-    await runPs([]);
-    await waitFor(() => autostarts() === 1, 15000);
+    await runPs([], {}, () => autostarts() === 1);
+    await sleep(500);
+    expect(autostarts()).toBe(1);
   }, 60000);
 
   it('restarts a daemon that stopped answering', async () => {
