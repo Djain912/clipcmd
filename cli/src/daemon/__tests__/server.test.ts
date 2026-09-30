@@ -334,8 +334,7 @@ describe('DaemonServer HTTP API', () => {
       expect(Math.min(...times)).toBeLessThan(50);
     });
 
-    // Feature: clipcmd, Property 6: Copy does not mutate output
-    it('writes the output byte-for-byte (Property 6)', async () => {
+    it('writes the output byte-for-byte', async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.string({ unit: fc.constantFrom('a', ' ', '\t', '\n', '\r', '\x1b[1;31m', '\x1b[0m', 'é', '🚀', '%', '"') }),
@@ -403,8 +402,7 @@ describe('DaemonServer HTTP API', () => {
       expect(d.queue.size).toBe(0);
     });
 
-    // Feature: clipcmd, Property 5: Multi-select batch copy format
-    it('copies selected blocks in chronological order with the exact format (Property 5)', async () => {
+    it('copies selected blocks in chronological order with the exact format', async () => {
       await runCommand('one', { output: 'out1\n' });
       await runCommand('two', { output: '' });
       await runCommand('three', { output: 'out3' });
@@ -433,8 +431,7 @@ describe('DaemonServer HTTP API', () => {
       expect(d.queue.size).toBe(1);
     });
 
-    // Feature: clipcmd, Property 10: Evicted Block removed from Multi_Select_Queue
-    it('drops evicted blocks from the selection (Property 10)', async () => {
+    it('drops evicted blocks from the selection', async () => {
       await runCommand('oldest');
       const oldest = lastBlock().id;
       await get(`/select?id=${oldest}`);

@@ -67,8 +67,7 @@ describe('applyHookBlock / removeHookBlock (pure)', () => {
     expect(() => removeHookBlock(content)).toThrow(MalformedHookBlockError);
   });
 
-  // Feature: clipcmd, Property 7: Hook idempotent installation
-  it('installing twice equals installing once, with exactly one block (Property 7)', () => {
+  it('installing twice equals installing once, with exactly one block', () => {
     fc.assert(
       fc.property(configText, (content) => {
         const once = applyHookBlock(content, HOOK);
@@ -80,8 +79,7 @@ describe('applyHookBlock / removeHookBlock (pure)', () => {
     );
   });
 
-  // Feature: clipcmd, Property 8: Hook clean uninstall
-  it('uninstall removes both markers and preserves everything else (Property 8)', () => {
+  it('uninstall removes both markers and preserves everything else', () => {
     fc.assert(
       fc.property(configText, configText, (before, after) => {
         const prefix = before === '' || before.endsWith('\n') ? before : `${before}\n`;

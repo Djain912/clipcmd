@@ -3,7 +3,6 @@
  * Removes the clipcmd shell hook from the shell's config file. `--all`
  * removes clipcmd from every shell, removes the link handler and stops the
  * daemon — run it before `npm uninstall -g clipcmd`.
- * Requirements: 2.9
  */
 import { getConfigDir } from '../../config/paths';
 import { resolveShellArg, SUPPORTED_SHELLS, UnsupportedShellError } from '../../installer/shellDetector';

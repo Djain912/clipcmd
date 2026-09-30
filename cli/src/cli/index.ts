@@ -1,7 +1,6 @@
 /**
  * CLI entry point for clipcmd.
  * Parses the command name from argv and dispatches to the appropriate command module.
- * Requirements: 11.1
  */
 import { run as runDoctor } from './commands/doctor';
 import { run as runInit } from './commands/init';

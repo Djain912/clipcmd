@@ -1,6 +1,5 @@
 /**
  * Daemon entry point — initializes all components and starts the HTTP server.
- * Task 13.1 — Requirements: 1.6, 1.7, 1.8
  */
 
 import * as fs from 'node:fs';
@@ -130,7 +129,7 @@ async function main(): Promise<void> {
       config.copyFeedback && process.env.CLIPCMD_COPY_FEEDBACK !== '0' ? createCopyFeedback(log) : undefined,
   });
 
-  // Requirement 1.6: release the port and delete the Port_File on termination.
+  // Release the port and delete the Port_File on termination.
   for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) {
     process.on(signal, () => void shutdown(signal));
   }

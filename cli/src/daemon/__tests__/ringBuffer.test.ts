@@ -37,8 +37,7 @@ describe('RingBuffer', () => {
     expect(buffer.getAll().map((b) => b.id)).toEqual(['b']);
   });
 
-  // Feature: clipcmd, Property 1: Ring Buffer capacity invariant
-  it('never holds more than its capacity (Property 1)', () => {
+  it('never holds more than its capacity', () => {
     fc.assert(
       fc.property(fc.integer({ min: 1, max: 50 }), fc.integer({ min: 0, max: 500 }), (capacity, count) => {
         const buffer = new RingBuffer(capacity);
@@ -51,8 +50,7 @@ describe('RingBuffer', () => {
     );
   });
 
-  // Feature: clipcmd, Property 2: Ring Buffer FIFO eviction
-  it('always evicts the oldest block (Property 2)', () => {
+  it('always evicts the oldest block', () => {
     fc.assert(
       fc.property(fc.integer({ min: 1, max: 30 }), fc.integer({ min: 1, max: 200 }), (capacity, extra) => {
         const buffer = new RingBuffer(capacity);

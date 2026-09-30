@@ -4,10 +4,8 @@ import { describePid, getDaemonState } from '../../shared/daemonClient';
  * Implements `clipcmd status`.
  *
  * Reads ~/.config/clipcmd/port, checks whether the daemon is reachable via
- * GET /health, and prints a human-readable status message. Always exits 0
- * (design: "Daemon Not Running" error handling); the message carries the state.
- *
- * Requirements: 1.5
+ * GET /health, and prints a human-readable status message. Always exits 0:
+ * a stopped daemon is a state, not an error, and the message says which.
  */
 export async function run(_args: string[]): Promise<number> {
   const state = await getDaemonState();

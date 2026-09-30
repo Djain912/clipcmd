@@ -26,8 +26,7 @@ describe('OSC 8 buttons', () => {
     else process.env.CLIPCMD_URL_SCHEME = savedScheme;
   });
 
-  // Feature: clipcmd, Property 11: OSC 8 button format correctness
-  it('builds exactly \\x1b]8;;{url}\\x07{label}\\x1b]8;;\\x07 (Property 11)', () => {
+  it('builds exactly \\x1b]8;;{url}\\x07{label}\\x1b]8;;\\x07', () => {
     fc.assert(
       fc.property(fc.string(), fc.string(), (label, url) => {
         expect(buildOsc8Button(label, url)).toBe(`\x1b]8;;${url}\x07${label}\x1b]8;;\x07`);

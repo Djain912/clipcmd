@@ -31,8 +31,6 @@ function reloadInstruction(shell: SupportedShell): string {
  * Detects the user's shell (or uses the one given), then installs the hook,
  * replacing an existing clipcmd block so re-running after an upgrade
  * refreshes it.
- *
- * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6
  */
 export async function run(args: string[]): Promise<number> {
   let shell: SupportedShell;

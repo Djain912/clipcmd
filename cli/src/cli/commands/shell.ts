@@ -9,7 +9,6 @@
  * joined. The shell hooks mark where each command's output starts and ends
  * with an invisible escape sequence (OSC 9999;clipcmd;start|end;<seq>), and
  * the text in between is sent to the daemon.
- * Requirements: 12.1, 12.2, 12.3, 12.4
  */
 import * as fs from 'node:fs';
 import * as http from 'node:http';

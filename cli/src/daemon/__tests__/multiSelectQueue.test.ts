@@ -30,8 +30,7 @@ describe('MultiSelectQueue', () => {
     expect(queue.getAll()).toEqual(['a']);
   });
 
-  // Feature: clipcmd, Property 3: Multi_Select_Queue toggle idempotence
-  it('toggling an id twice restores the previous queue (Property 3)', () => {
+  it('toggling an id twice restores the previous queue', () => {
     fc.assert(
       fc.property(fc.uniqueArray(fc.string()), fc.string(), (initial, id) => {
         const queue = new MultiSelectQueue();
@@ -46,8 +45,7 @@ describe('MultiSelectQueue', () => {
     );
   });
 
-  // Feature: clipcmd, Property 4: Multi_Select_Queue uniqueness invariant
-  it('never contains duplicates (Property 4)', () => {
+  it('never contains duplicates', () => {
     fc.assert(
       fc.property(fc.array(fc.constantFrom('a', 'b', 'c', 'd')), (ops) => {
         const queue = new MultiSelectQueue();

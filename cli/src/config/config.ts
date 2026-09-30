@@ -108,7 +108,7 @@ export const ConfigManager = {
   /**
    * Reads ~/.config/clipcmd/config.json and returns the validated config.
    * Falls back to defaults when the file is missing, is not valid JSON, or
-   * contains invalid values. Never throws to the caller (Requirement 8.4).
+   * contains invalid values. Never throws to the caller.
    */
   load(onWarning?: (message: string) => void): ClipCmdConfig {
     let raw: string;
@@ -129,7 +129,7 @@ export const ConfigManager = {
 
   /**
    * Writes the given config to ~/.config/clipcmd/config.json as formatted JSON.
-   * Creates the directory if it does not already exist (Requirement 8.2).
+   * Creates the directory if it does not already exist.
    */
   save(config: ClipCmdConfig): void {
     const file = getConfigFile();

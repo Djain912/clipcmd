@@ -111,8 +111,7 @@ describe('ConfigManager', () => {
     expect(JSON.parse(fs.readFileSync(getConfigFile(), 'utf8'))).toEqual(config);
   });
 
-  // Feature: clipcmd, Property 9: Config round-trip
-  it('round-trips any valid config (Property 9)', () => {
+  it('round-trips any valid config', () => {
     fc.assert(
       fc.property(
         fc.record({

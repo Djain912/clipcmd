@@ -7,11 +7,7 @@ Copy buttons after every terminal command: the command, its output, or both, in 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 
-```
-PS C:\project> npm test
-  ✓ 42 tests passed
-[COPY CMD] [COPY OUTPUT] [COPY BOTH] [+]
-```
+![A test run in Windows Terminal, followed by the buttons [COPY CMD] [COPY OUTPUT] [COPY BOTH] [+]; a small tag next to the pointer says: Copied command + output](https://raw.githubusercontent.com/Djain912/clipcmd/main/docs/demo.png)
 
 | Button          | Copies |
 |-----------------|--------|
@@ -24,20 +20,59 @@ Works in PowerShell (Windows PowerShell 5.1 and PowerShell 7), bash (including G
 
 ---
 
-## Install
+## Quick start
 
-```bash
-npm install -g clipcmd
-clipcmd init        # run it in the shell you use
+You need [Node.js](https://nodejs.org) 20 or newer (`node -v` tells you which one you have).
+
+1. Install clipcmd:
+
+   ```bash
+   npm install -g clipcmd
+   ```
+
+2. Set it up for your shell. Run this in the shell you use (PowerShell, bash, zsh or fish), once per shell:
+
+   ```bash
+   clipcmd init
+   ```
+
+   It detects the shell (from `$SHELL`, or on Windows the PowerShell you run it from); name it to choose: `clipcmd init bash`, `zsh`, `fish`, `powershell` (Windows PowerShell 5.1) or `pwsh` (PowerShell 7).
+
+3. **Open a new terminal** window or tab. The background daemon starts by itself with your first terminal (also after a reboot).
+4. Run any command, for example `git status`. The buttons appear under its output.
+5. Hold **Ctrl** (**Cmd** on macOS) and click a button. A small **✓ Copied** confirmation appears; paste anywhere.
+
+Using **VS Code**? Also install the [clipcmd extension](https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd) so `[COPY OUTPUT]` and `[COPY BOTH]` work in its terminal.
+
+Something not working? Run `clipcmd doctor`: it checks everything and says how to fix it.
+
+---
+
+## Using clipcmd
+
+**Click with Ctrl held down** (Cmd on macOS). Terminals open links only on Ctrl+click, so a plain click does nothing. The copy is silent — no browser tab, no window — and a small **✓ Copied command** tag next to the mouse pointer confirms it on Windows (it never takes focus, and shows even with Do Not Disturb on); macOS and Linux show a short notification. `"copyFeedback": false` in the [configuration](#configuration) turns it off.
+
+**Which buttons you get.** `[COPY CMD]` and `[+]` always work. `[COPY OUTPUT]` and `[COPY BOTH]` need the command's output, which clipcmd captures:
+
+- in normal terminal windows (Windows Terminal, iTerm2, GNOME Terminal, ...): automatically, because your shell runs inside `clipcmd shell` (see [Output capture](#output-capture));
+- in VS Code: with the [clipcmd extension](https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd) installed, or by running `clipcmd shell` in the terminal yourself.
+
+Where output is not captured, only `[COPY CMD]` and `[+]` are shown, and the terminal says once how to enable the others.
+
+**Collect several commands with `[+]`.** Ctrl+click `[+]` after each command you want. Every click puts the whole collection on the clipboard right away, oldest command first:
+
+```
+$ command one
+output of command one
+
+$ command two
+output of command two
+
 ```
 
-Then open a new terminal. That's it: the background daemon starts by itself with your first terminal (also after a reboot). Hold **Ctrl** (**Cmd** on macOS) and click a button: it copies silently — no browser tab, no window. (Terminals open links only on Ctrl+click, so a plain click does nothing.) A small **✓ Copied command** tag next to the mouse pointer confirms each click on Windows (it shows even with Do Not Disturb on, and never takes focus); macOS and Linux show a short notification.
+Clicking `[+]` on a collected command removes it (and re-copies the rest). To copy the collection and start a new one, open `/copy-selected` on the daemon (port from `clipcmd status`), e.g. `http://127.0.0.1:9666/copy-selected`.
 
-`clipcmd init` detects your shell (from `$SHELL`, or on Windows the PowerShell you run it from); pass `bash`, `zsh`, `fish`, `powershell` or `pwsh` to choose. Run it once per shell you use. Something not working? Run `clipcmd doctor`.
-
-The [clipcmd VS Code extension](https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd) adds output capture in VS Code's terminal.
-
-Requires Node.js 20 or newer.
+**History.** The daemon keeps your last 200 commands in memory (`ringBufferSize`), so buttons of older commands, and of commands from before the daemon last restarted, no longer copy (no ✓ Copied appears).
 
 ---
 
@@ -84,23 +119,6 @@ Starting a terminal runs your shell's startup files twice (once before the hook 
 | `clipcmd --version`         | Prints the installed version. |
 
 Commands exit with code 1 when they fail; `doctor` exits with 1 when it finds a problem; `shell` exits with 126 when it cannot start, otherwise with the shell's exit code.
-
----
-
-## Collecting Several Commands (`[+]`)
-
-Click `[+]` after each command you want. Every click puts the whole collection on the clipboard right away, oldest command first:
-
-```
-$ command one
-output of command one
-
-$ command two
-output of command two
-
-```
-
-Clicking `[+]` on a collected command removes it (and re-copies the rest). To copy the collection and start a new one, visit `/copy-selected` on the daemon (port from `clipcmd status`), e.g. `http://127.0.0.1:9666/copy-selected`.
 
 ---
 
@@ -155,7 +173,7 @@ Start with `clipcmd doctor`: it checks Node.js, the config, the daemon, each hoo
 
 ## Configuration
 
-`~/.config/clipcmd/config.json` (optional):
+Settings live in `~/.config/clipcmd/config.json` (on Windows: `C:\Users\<you>\.config\clipcmd\config.json`). The file is optional: create it with only the keys you want to change, then restart the daemon with `clipcmd stop` and `clipcmd start`. All keys and their defaults:
 
 ```json
 {
@@ -195,6 +213,32 @@ Environment variables:
 
 ---
 
+## Updating
+
+```bash
+npm install -g clipcmd@latest
+```
+
+Then run `clipcmd init` again in each shell you set up (it refreshes the hook), restart the daemon with `clipcmd stop` and `clipcmd start`, and open a new terminal. `clipcmd doctor` warns when a hook is from another version.
+
+---
+
+## Uninstalling
+
+```bash
+clipcmd uninstall --all
+```
+
+This removes the hook from every shell, the link handler and the Windows Terminal setting, and stops the daemon. Then remove the package:
+
+```bash
+npm uninstall -g clipcmd
+```
+
+Your settings and logs stay in `~/.config/clipcmd/`; delete that folder to remove them too. In VS Code, uninstall the clipcmd extension from the Extensions view.
+
+---
+
 ## Security
 
 The daemon only listens on `127.0.0.1`, never on your network. Because any web page can make your browser send requests to `127.0.0.1`, the daemon rejects requests that carry browser cross-site markers (`Origin`, or `Sec-Fetch-Site` other than `none`) or an unexpected `Host` header (DNS rebinding). Clicking a copy button — a top-level navigation you started — is still allowed.
@@ -207,15 +251,10 @@ See [SECURITY.md](https://github.com/Djain912/clipcmd/blob/main/SECURITY.md) to 
 
 ## Development
 
-```bash
-npm install
-npm test          # builds dist/, then runs unit, property and end-to-end tests
-```
-
-The end-to-end tests run the real CLI, real bash (Git Bash on Windows), zsh and fish when installed, a real interactive PowerShell through a pseudo-console (Windows PowerShell 5.1, and PowerShell 7 when `pwsh` is installed or `CLIPCMD_TEST_PWSH` points at it), VS Code's real bash and PowerShell shell-integration scripts when VS Code is installed, a real PTY via `node-pty`, and the `clipcmd://` handler registered under a throwaway scheme name and opened through ShellExecute, both directly (as VS Code opens links) and through the shortcuts Windows Terminal buttons use. Tests never touch your real `~/.config/clipcmd`, shell config files, Windows Terminal settings, link handler registration, or clipboard, and never start daemons from the hooks (`test/e2e/isolation.test.ts` guards this).
+See [CONTRIBUTING.md](https://github.com/Djain912/clipcmd/blob/main/CONTRIBUTING.md) to build clipcmd and run its tests.
 
 ---
 
 ## License
 
-[MIT](LICENSE) © Djain912
+[MIT](https://github.com/Djain912/clipcmd/blob/main/LICENSE) © Djain912

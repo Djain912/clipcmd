@@ -1,8 +1,6 @@
 /**
  * MultiSelectQueue maintains an ordered list of Block IDs that the user
  * has toggled for batch copying.
- *
- * Requirements: 6.1, 6.2, 6.4, 6.6
  */
 export class MultiSelectQueue {
   private _ids: string[] = [];
@@ -30,7 +28,7 @@ export class MultiSelectQueue {
 
   /**
    * Removes a specific ID from the queue.
-   * Used when a Block is evicted from the Ring_Buffer (Requirement 6.6).
+   * Used when a Block is evicted from the Ring_Buffer.
    * No-op if the ID is not present.
    */
   remove(id: string): void {
@@ -42,7 +40,7 @@ export class MultiSelectQueue {
 
   /**
    * Empties the queue.
-   * Called after a successful /copy-selected operation (Requirement 6.4).
+   * Called after a successful /copy-selected operation.
    */
   clear(): void {
     this._ids = [];

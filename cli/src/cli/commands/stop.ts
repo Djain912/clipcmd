@@ -3,7 +3,6 @@
  * Sends a shutdown request to the daemon and waits for it to exit. The
  * daemon then stays off — new shells do not restart it — until
  * `clipcmd start` is run again.
- * Requirements: 1.4
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';

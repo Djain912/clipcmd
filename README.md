@@ -15,11 +15,9 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="MIT"></a>
 </p>
 
-```
-$ npm test
-  ✓ 42 tests passed
-[COPY CMD] [COPY OUTPUT] [COPY BOTH] [+]
-```
+<p align="center">
+  <img src="docs/demo.png" width="611" alt="A test run in Windows Terminal, followed by the buttons [COPY CMD] [COPY OUTPUT] [COPY BOTH] [+]; a small tag next to the pointer says: Copied command + output">
+</p>
 
 Every developer has copied a command and its output into an issue, a chat or a doc by dragging the mouse over the terminal. clipcmd puts clickable buttons under every command instead:
 
@@ -28,18 +26,45 @@ Every developer has copied a command and its output into an issue, a chat or a d
 - **`[COPY BOTH]`** — `$ command` and its output, ready to paste
 - **`[+]`** — collect several commands and their output into one clipboard entry
 
-Works in **PowerShell** (5.1 and 7), **bash** (including Git Bash), **zsh** and **fish** on **Windows, macOS and Linux** — in Windows Terminal, VS Code, iTerm2, GNOME Terminal, WezTerm, kitty and any other terminal with [OSC 8 hyperlinks](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda).
+Works in **PowerShell** (5.1 and 7), **bash** (including Git Bash), **zsh** and **fish** on **Windows, macOS and Linux** — in Windows Terminal, VS Code, iTerm2, GNOME Terminal, WezTerm, kitty and any other terminal with [clickable links](cli/README.md#terminal-compatibility).
 
-## Install
+## Quick start
 
-```bash
-npm install -g clipcmd
-clipcmd init
-```
+You need [Node.js](https://nodejs.org) 20 or newer (`node -v` tells you which one you have).
 
-Open a new terminal and run any command. Using VS Code? Also install the [clipcmd extension](https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd) so `[COPY OUTPUT]` works in its terminal.
+1. Install clipcmd:
 
-Something off? `clipcmd doctor` checks the setup and tells you how to fix it.
+   ```bash
+   npm install -g clipcmd
+   ```
+
+2. Set it up for your shell (run this in the shell you use; once per shell):
+
+   ```bash
+   clipcmd init
+   ```
+
+3. **Open a new terminal** window or tab.
+4. Run any command, for example `git status`. The buttons appear under its output.
+5. Hold **Ctrl** (**Cmd** on macOS) and click a button. A small **✓ Copied** confirmation appears; paste anywhere.
+
+Using **VS Code**? Also install the [clipcmd extension](https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd) so `[COPY OUTPUT]` and `[COPY BOTH]` work in its terminal.
+
+Something not working? Run `clipcmd doctor`: it checks everything and says how to fix it.
+
+## Learn more
+
+- [How to use it](cli/README.md#using-clipcmd) — the buttons, collecting several commands, where output can be copied
+- [Configuration](cli/README.md#configuration) — `~/.config/clipcmd/config.json` and environment variables
+- [Troubleshooting](cli/README.md#troubleshooting)
+- [Updating and uninstalling](cli/README.md#updating)
+- [The VS Code extension](vscode-extension/README.md)
+
+## How it works
+
+A small background program (the daemon) listens on `127.0.0.1`. A hook in your shell's startup file tells it about each command and prints the buttons when the command finishes. The buttons are links: a Ctrl+click opens a tiny handler registered for your user account, which asks the daemon to copy — no browser, no window — and a "✓ Copied" confirmation appears (a tag next to the pointer on Windows). To know what a command printed, interactive terminals run inside a recorder (`clipcmd shell`, automatic); in VS Code, the extension reads the output from VS Code's shell integration instead. Nothing leaves your machine.
+
+Details: [cli/README.md](cli/README.md#how-it-works).
 
 ## This repository
 
@@ -47,16 +72,11 @@ Something off? `clipcmd doctor` checks the setup and tells you how to fix it.
 |---|---|---|
 | [`cli/`](cli) | The `clipcmd` command, background daemon and shell hooks — [full documentation](cli/README.md) | [`clipcmd` on npm](https://www.npmjs.com/package/clipcmd) |
 | [`vscode-extension/`](vscode-extension) | Output capture and daemon controls for VS Code's terminal | [`djain912.clipcmd` on the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd) |
-
-## How it works
-
-A small daemon listens on `127.0.0.1`. A hook in your shell config reports each command and prints the buttons when it finishes. The buttons are `clipcmd://` links handled by a tiny per-user link handler (on Windows, shortcut links to the same handler, since Windows Terminal cannot open `clipcmd://` links), so a Ctrl+click (Cmd+click on macOS) copies silently — no browser, no window — and a "✓ Copied" confirmation appears (a tag next to the pointer on Windows). To know what a command printed, interactive sessions run inside a pseudo-terminal recorder (`clipcmd shell`, automatic), or, in VS Code, the extension reads the output from VS Code's shell integration. Nothing leaves your machine.
-
-Details: [cli/README.md](cli/README.md).
+| [`docs/`](docs) | Images for the READMEs | — |
 
 ## Contributing
 
-Bug reports and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Security issues: [SECURITY.md](SECURITY.md).
+Bug reports and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Security issues: [SECURITY.md](SECURITY.md). Releases: [RELEASING.md](RELEASING.md).
 
 ## License
 

@@ -128,7 +128,6 @@ function findBlocks(content: string, configPath: string): Array<[number, number]
 /**
  * Pure transform used by install(): replaces the first existing hook block
  * (dropping any duplicates) or appends a new one at the end.
- * Requirements: 2.2, 2.3, 2.4, 2.5
  */
 export function applyHookBlock(content: string, hookContent: string, configPath = 'shell config'): string {
   const block = buildBlock(hookContent);
@@ -150,7 +149,6 @@ export function applyHookBlock(content: string, hookContent: string, configPath 
 /**
  * Pure transform used by uninstall(): removes every hook block, leaving all
  * other content byte-for-byte intact.
- * Requirement: 2.9
  */
 export function removeHookBlock(content: string, configPath = 'shell config'): string {
   const blocks = findBlocks(content, configPath);
@@ -168,7 +166,7 @@ export type InstallResult = 'installed' | 'updated' | 'unchanged';
 /**
  * Installs (or refreshes) the shell hook in the shell's config file.
  * Re-running replaces the existing block, so upgrading clipcmd and running
- * `clipcmd init` again picks up the new hook (Requirement 2.5).
+ * `clipcmd init` again picks up the new hook.
  */
 export function install(shell: SupportedShell): InstallResult {
   // Hooks are ASCII; read as bytes to match readConfigText's byte-preserving text
@@ -194,7 +192,6 @@ export function install(shell: SupportedShell): InstallResult {
 /**
  * Removes the clipcmd hook block from the shell's config file.
  * Returns true if a block was removed.
- * Requirement: 2.9
  */
 export function uninstall(shell: SupportedShell): boolean {
   const configPath = getConfigPath(shell);

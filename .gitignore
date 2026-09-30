@@ -6,3 +6,4 @@ out/
 *.tgz
 *.log
 .DS_Store
+.kiro/

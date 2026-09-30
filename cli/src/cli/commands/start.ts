@@ -2,7 +2,6 @@
  * `clipcmd start` command
  * Forks the daemon as a detached background process and waits until it is
  * reachable, so success is only reported once the daemon actually works.
- * Requirements: 1.1
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';

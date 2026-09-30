@@ -6,7 +6,7 @@ import * as path from 'node:path';
  * (not at module load) so the CLIPCMD_CONFIG_DIR override is honoured even when
  * it is set after import — the test suites rely on this for isolation.
  *
- * Requirement 8.1: everything lives under ~/.config/clipcmd/ by default.
+ * Everything lives under ~/.config/clipcmd/ by default.
  */
 export function getConfigDir(): string {
   const override = process.env.CLIPCMD_CONFIG_DIR;

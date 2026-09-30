@@ -12,7 +12,7 @@ import { removePortFileIfOwned, writePortFile } from '../config/portFile';
 /** Session used by hooks that do not send a `sid` parameter. */
 export const DEFAULT_SESSION_ID = 'default';
 
-/** How many ports above the preferred one to try before giving up (Requirement 1.2). */
+/** How many ports above the preferred one to try before giving up. */
 const PORT_SCAN_RANGE = 10;
 
 /** A VS Code window counts as present this long after its last /client call. */
@@ -34,7 +34,7 @@ export interface DaemonServerOptions {
   host?: string;
   /** Write the Port_File after binding (default true). */
   writePortFile?: boolean;
-  /** Receives operational errors (Requirement 1.7). */
+  /** Receives operational errors. */
   log?: (message: string) => void;
   /** Called after /shutdown has closed the server. */
   onShutdown?: () => void;
@@ -136,7 +136,6 @@ export class DaemonServer {
   /**
    * Starts the HTTP server, scanning from preferredPort up to preferredPort+10
    * for a free port. Writes the active port to Port_File as `{port}:{pid}`.
-   * Requirements: 10.1, 1.2, 1.3
    */
   async start(): Promise<void> {
     if (this.server) {
@@ -261,8 +260,7 @@ export class DaemonServer {
 
   /**
    * /start — create a new in-progress Block for the session. If the session
-   * already has one, finalize it first (Requirement 3.6).
-   * Requirements: 3.3, 3.6
+   * already has one, finalize it first.
    */
   private async handleStart(query: URLSearchParams, res: http.ServerResponse): Promise<void> {
     // URLSearchParams has already percent-decoded the values; decoding again
@@ -314,7 +312,6 @@ export class DaemonServer {
   /**
    * /end — finalize the session's in-progress Block and return the buttons
    * in the response body; the shell hook prints them to the terminal.
-   * Requirements: 3.4, 6.6
    */
   private async handleEnd(query: URLSearchParams, res: http.ServerResponse): Promise<void> {
     const exitCodeStr = query.get('exitCode');
@@ -376,7 +373,6 @@ export class DaemonServer {
 
   /**
    * /copy — write a Block's command, raw output, or both to the clipboard.
-   * Requirements: 5.6, 5.7, 5.8, 5.9, 5.10, 7.1–7.4, 9.2
    */
   private async handleCopy(
     query: URLSearchParams,
@@ -421,7 +417,6 @@ export class DaemonServer {
    * /select — the [+] button. Toggles a Block in the selection and puts the
    * whole selection on the clipboard right away, so collecting several
    * commands needs no separate "copy" step.
-   * Requirements: 6.1, 6.2
    */
   private async handleSelect(
     query: URLSearchParams,
@@ -469,7 +464,6 @@ export class DaemonServer {
   /**
    * /copy-selected — copy every selected Block as `$ {command}\n{output}\n\n`
    * in chronological order, then clear the selection.
-   * Requirements: 6.3, 6.4, 6.5, 7.5
    */
   private async handleCopySelected(
     _query: URLSearchParams,
@@ -590,7 +584,7 @@ export class DaemonServer {
   /**
    * Finalizes a session's in-progress Block: attaches captured output and the
    * exit code, pushes it to the ring buffer (evicting the oldest if full), and
-   * drops any evicted Block from the multi-select queue (Requirement 6.6).
+   * drops any evicted Block from the multi-select queue.
    */
   private async finalizeSession(sid: string, exitCode: number | null): Promise<Block | undefined> {
     const block = this.currentBlocks.get(sid);
@@ -642,7 +636,7 @@ function parseSeq(value: string | null): number | undefined {
   return value !== null && /^\d{1,9}$/.test(value) ? Number(value) : undefined;
 }
 
-/** Selection format (Requirement 7.5): `$ {command}\n{output}\n\n` per block. */
+/** Selection format: `$ {command}\n{output}\n\n` per block. */
 function formatSelection(blocks: Block[]): string {
   return blocks.map((block) => `${commandWithOutput(block)}\n\n`).join('');
 }
