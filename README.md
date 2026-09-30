@@ -16,9 +16,9 @@
 </p>
 
 <p align="center">
-  <a href="docs/clipcmd-launch.mp4"><img src="docs/demo.gif" width="960" alt="clipcmd in 25 seconds: copying a failed build into an AI agent by hand, then one Ctrl+click on [COPY BOTH] and a complete paste"></a>
+  <img src="docs/demo.gif" width="960" alt="clipcmd in 25 seconds: copying a failed build into an AI agent by hand, then one Ctrl+click on [COPY BOTH] and a complete paste">
   <br>
-  <a href="docs/clipcmd-launch.mp4"><b>▶ Watch the 25-second video with sound</b></a>
+  <a href="https://github.com/Djain912/clipcmd/raw/main/docs/clipcmd-launch.mp4"><b>▶ Download the 25-second video with sound (MP4, 6.5 MB)</b></a>
 </p>
 
 Every developer has copied a command and its output into an issue, a chat or a doc by dragging the mouse over the terminal. clipcmd puts clickable buttons under every command instead:
