@@ -8,7 +8,7 @@ PS C:\project> npm test
 [COPY CMD] [COPY OUTPUT] [COPY BOTH] [+]
 ```
 
-This extension is the VS Code half of [**clipcmd**](https://github.com/Djain912/clipcmd), the CLI that prints these buttons after every command in PowerShell, bash, zsh and fish.
+This extension is the VS Code half of [**clipcmd**](https://www.npmjs.com/package/clipcmd), the CLI that prints these buttons after every command in PowerShell, bash, zsh and fish.
 
 ## Getting started
 

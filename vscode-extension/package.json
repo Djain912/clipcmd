@@ -2,7 +2,7 @@
   "name": "clipcmd",
   "displayName": "clipcmd — Copy Command Output",
   "description": "One-click [COPY OUTPUT] and [COPY BOTH] buttons for every command in VS Code's terminal, with the clipcmd CLI.",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "publisher": "djain912",
   "author": "Djain912",
   "license": "MIT",

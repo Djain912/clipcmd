@@ -6,7 +6,8 @@ import { announceToDaemon, captureTerminalOutput } from './outputCapture';
 /** Tells the daemon a VS Code window can deliver output (it forgets after 5 minutes). */
 const ANNOUNCE_INTERVAL_MS = 60 * 1000;
 
-export const INSTALL_GUIDE_URL = 'https://github.com/Djain912/clipcmd#readme';
+/** The CLI's page, with install steps (npm shows its README). */
+export const INSTALL_GUIDE_URL = 'https://www.npmjs.com/package/clipcmd';
 
 const START_ACTION = 'Start Daemon';
 const INSTALL_ACTION = 'How to Install';

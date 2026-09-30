@@ -2,7 +2,7 @@
 
 All notable changes to the `clipcmd` CLI. This project follows [Semantic Versioning](https://semver.org/).
 
-## 1.0.0 — 2026-09-28
+## 0.0.1 — 2026-09-30
 
 First public release.
 
