@@ -2,6 +2,10 @@
 
 All notable changes to the `clipcmd` CLI. This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.0.2 — 2026-09-30
+
+- The README opens with an animated demo and links to a 25-second video of clipcmd in use. No code changes.
+
 ## 0.0.1 — 2026-09-30
 
 First public release.

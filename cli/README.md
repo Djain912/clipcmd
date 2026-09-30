@@ -7,7 +7,9 @@ Copy buttons after every terminal command: the command, its output, or both, in 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 
-![A test run in Windows Terminal, followed by the buttons [COPY CMD] [COPY OUTPUT] [COPY BOTH] [+]; a small tag next to the pointer says: Copied command + output](https://raw.githubusercontent.com/Djain912/clipcmd/main/docs/demo.png)
+[![clipcmd in 25 seconds: copying a failed build into an AI agent by hand, then one Ctrl+click on [COPY BOTH] and a complete paste](https://raw.githubusercontent.com/Djain912/clipcmd/main/docs/demo.gif)](https://github.com/Djain912/clipcmd/blob/main/docs/clipcmd-launch.mp4)
+
+[**▶ Watch the 25-second video with sound**](https://github.com/Djain912/clipcmd/blob/main/docs/clipcmd-launch.mp4)
 
 | Button          | Copies |
 |-----------------|--------|

@@ -2,7 +2,9 @@
 
 Copy a terminal command's **output** — or the command and its output together — with one click, right in VS Code's terminal.
 
-![A test run in a terminal, followed by the buttons [COPY CMD] [COPY OUTPUT] [COPY BOTH] [+]; a small tag next to the pointer says: Copied command + output](https://raw.githubusercontent.com/Djain912/clipcmd/main/docs/demo.png)
+[![clipcmd in 25 seconds: copying a failed build into an AI agent by hand, then one Ctrl+click on [COPY BOTH] and a complete paste](https://raw.githubusercontent.com/Djain912/clipcmd/main/docs/demo.gif)](https://github.com/Djain912/clipcmd/blob/main/docs/clipcmd-launch.mp4)
+
+[**▶ Watch the 25-second video with sound**](https://github.com/Djain912/clipcmd/blob/main/docs/clipcmd-launch.mp4)
 
 This extension is the VS Code half of [**clipcmd**](https://www.npmjs.com/package/clipcmd), the command-line tool that prints these buttons after every command in PowerShell, bash, zsh and fish.
 

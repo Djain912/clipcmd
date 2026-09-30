@@ -16,7 +16,9 @@
 </p>
 
 <p align="center">
-  <img src="docs/demo.png" width="611" alt="A test run in Windows Terminal, followed by the buttons [COPY CMD] [COPY OUTPUT] [COPY BOTH] [+]; a small tag next to the pointer says: Copied command + output">
+  <a href="docs/clipcmd-launch.mp4"><img src="docs/demo.gif" width="960" alt="clipcmd in 25 seconds: copying a failed build into an AI agent by hand, then one Ctrl+click on [COPY BOTH] and a complete paste"></a>
+  <br>
+  <a href="docs/clipcmd-launch.mp4"><b>▶ Watch the 25-second video with sound</b></a>
 </p>
 
 Every developer has copied a command and its output into an issue, a chat or a doc by dragging the mouse over the terminal. clipcmd puts clickable buttons under every command instead:
@@ -72,7 +74,7 @@ Details: [cli/README.md](cli/README.md#how-it-works).
 |---|---|---|
 | [`cli/`](cli) | The `clipcmd` command, background daemon and shell hooks — [full documentation](cli/README.md) | [`clipcmd` on npm](https://www.npmjs.com/package/clipcmd) |
 | [`vscode-extension/`](vscode-extension) | Output capture and daemon controls for VS Code's terminal | [`djain912.clipcmd` on the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd) |
-| [`docs/`](docs) | Images for the READMEs | — |
+| [`docs/`](docs) | The launch video and the images in the READMEs | — |
 
 ## Contributing
 
