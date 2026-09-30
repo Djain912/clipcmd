@@ -17,6 +17,11 @@ export interface ClipCmdConfig {
    * output can be copied (not in VS Code, whose extension captures output).
    */
   autoShell: boolean;
+  /**
+   * Confirm each click: a "Copied" tag next to the mouse pointer on Windows,
+   * a notification on macOS and Linux.
+   */
+  copyFeedback: boolean;
 }
 
 export const DEFAULT_CONFIG: ClipCmdConfig = {
@@ -25,6 +30,7 @@ export const DEFAULT_CONFIG: ClipCmdConfig = {
   maxOutputBytes: 1024 * 1024,
   links: 'auto',
   autoShell: true,
+  copyFeedback: true,
 };
 
 type Rule =
@@ -38,6 +44,7 @@ const RULES: Record<keyof ClipCmdConfig, Rule> = {
   maxOutputBytes: { kind: 'int', min: 0, max: 64 * 1024 * 1024 },
   links: { kind: 'enum', values: ['auto', 'clipcmd', 'http'] },
   autoShell: { kind: 'bool' },
+  copyFeedback: { kind: 'bool' },
 };
 
 function isValid(rule: Rule, value: unknown): boolean {

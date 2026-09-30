@@ -50,6 +50,8 @@ export interface DaemonServerOptions {
   buttonLinks?: ButtonLinks;
   /** A how-to-click tip for a session's first buttons, or undefined for none. */
   clickTip?: () => string | undefined;
+  /** Confirms a successful click to the user ("Copied command"); see shared/copyFeedback.ts. */
+  onCopied?: (message: string) => void;
 }
 
 /** Formats one block as `$ {command}\n{output}`. */
@@ -99,6 +101,7 @@ export class DaemonServer {
   private readonly now: () => number;
   private readonly buttonLinks: ButtonLinks | undefined;
   private readonly clickTip: () => string | undefined;
+  private readonly onCopied: (message: string) => void;
 
   constructor(
     private readonly ringBuffer: RingBuffer,
@@ -118,6 +121,16 @@ export class DaemonServer {
     this.now = options.now ?? Date.now;
     this.buttonLinks = options.buttonLinks;
     this.clickTip = options.clickTip ?? (() => undefined);
+    this.onCopied = options.onCopied ?? (() => {});
+  }
+
+  /** Tells the user the click worked; a failing confirmation never fails the copy. */
+  private confirm(message: string): void {
+    try {
+      this.onCopied(message);
+    } catch (err) {
+      this.log(`Copy confirmation failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   /**
@@ -401,6 +414,7 @@ export class DaemonServer {
     }
     const what = type === 'cmd' ? 'command' : type === 'output' ? 'output' : 'command and output';
     reply(req, res, 200, `Copied ${what} to clipboard`);
+    this.confirm(type === 'cmd' ? 'Copied command' : type === 'output' ? 'Copied output' : 'Copied command + output');
   }
 
   /**
@@ -443,6 +457,7 @@ export class DaemonServer {
 
     const count = `${blocks.length} command${blocks.length === 1 ? '' : 's'}`;
     reply(req, res, 200, added ? `Added to collection: ${count} copied` : `Removed from collection: ${count} left`);
+    this.confirm(added ? `Collected: ${count} copied` : `Removed: ${count} left`);
   }
 
   /** Selected blocks in chronological order. */
@@ -473,6 +488,7 @@ export class DaemonServer {
     }
     this.multiSelectQueue.clear();
     reply(req, res, 200, `Copied ${blocks.length} block${blocks.length === 1 ? '' : 's'} to clipboard`);
+    this.confirm(`Copied ${blocks.length} command${blocks.length === 1 ? '' : 's'}`);
   }
 
   /**

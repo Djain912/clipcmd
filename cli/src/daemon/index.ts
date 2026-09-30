@@ -12,6 +12,7 @@ import { isProcessAlive, readPortFile, removePortFileIfOwned } from '../config/p
 import { checkHealth } from '../shared/daemonClient';
 import { getHandlerScriptPath, isProtocolHandlerInstalled } from '../installer/protocolHandler';
 import { lazyButtonShortcuts } from '../shared/windowsShortcuts';
+import { createCopyFeedback } from '../shared/copyFeedback';
 import { RingBuffer } from './ringBuffer';
 import { MultiSelectQueue } from './multiSelectQueue';
 import { FileTailCapture } from './capture';
@@ -97,7 +98,7 @@ async function main(): Promise<void> {
   const config = ConfigManager.load((warning) => log(`Config warning: ${warning}`));
   log(
     `Loaded config: port=${config.port}, ringBufferSize=${config.ringBufferSize}, ` +
-      `maxOutputBytes=${config.maxOutputBytes}, links=${config.links}`
+      `maxOutputBytes=${config.maxOutputBytes}, links=${config.links}, copyFeedback=${config.copyFeedback}`
   );
 
   // Initialize components
@@ -125,6 +126,8 @@ async function main(): Promise<void> {
       config.links === 'auto' ? (isProtocolHandlerInstalled() ? 'clipcmd' : 'http') : config.links,
     buttonLinks: lazyButtonShortcuts(getHandlerScriptPath(), log),
     clickTip,
+    onCopied:
+      config.copyFeedback && process.env.CLIPCMD_COPY_FEEDBACK !== '0' ? createCopyFeedback(log) : undefined,
   });
 
   // Requirement 1.6: release the port and delete the Port_File on termination.

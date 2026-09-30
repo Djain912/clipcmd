@@ -31,7 +31,7 @@ npm install -g clipcmd
 clipcmd init        # run it in the shell you use
 ```
 
-Then open a new terminal. That's it: the background daemon starts by itself with your first terminal (also after a reboot). Hold **Ctrl** (**Cmd** on macOS) and click a button: it copies silently — no browser tab, no window. (Terminals open links only on Ctrl+click, so a plain click does nothing.)
+Then open a new terminal. That's it: the background daemon starts by itself with your first terminal (also after a reboot). Hold **Ctrl** (**Cmd** on macOS) and click a button: it copies silently — no browser tab, no window. (Terminals open links only on Ctrl+click, so a plain click does nothing.) A small **✓ Copied command** tag next to the mouse pointer confirms each click on Windows (it shows even with Do Not Disturb on, and never takes focus); macOS and Linux show a short notification.
 
 `clipcmd init` detects your shell (from `$SHELL`, or on Windows the PowerShell you run it from); pass `bash`, `zsh`, `fish`, `powershell` or `pwsh` to choose. Run it once per shell you use. Something not working? Run `clipcmd doctor`.
 
@@ -163,7 +163,8 @@ Start with `clipcmd doctor`: it checks Node.js, the config, the daemon, each hoo
   "ringBufferSize": 200,
   "maxOutputBytes": 1048576,
   "links": "auto",
-  "autoShell": true
+  "autoShell": true,
+  "copyFeedback": true
 }
 ```
 
@@ -174,6 +175,7 @@ Start with `clipcmd doctor`: it checks Node.js, the config, the daemon, each hoo
 | `maxOutputBytes` | `1048576` | Output kept per command; longer output keeps its last bytes (0 disables capture). |
 | `links`          | `"auto"`  | `"clipcmd"`: silent `clipcmd://` links; `"http"`: browser links; `"auto"`: `clipcmd://` when the handler is registered. |
 | `autoShell`      | `true`    | Run interactive terminal sessions inside `clipcmd shell` for output capture. |
+| `copyFeedback`   | `true`    | Confirm each click: a "✓ Copied" tag next to the mouse pointer on Windows, a notification on macOS and Linux. |
 
 Missing, corrupt or invalid values fall back to the defaults (with a warning in the log). `links` applies to each new command, `autoShell` to each new terminal, the others when the daemon starts (`clipcmd stop` then `clipcmd start`).
 
@@ -186,6 +188,7 @@ Environment variables:
 | `CLIPCMD_CONFIG_DIR` | Use another directory instead of `~/.config/clipcmd` (honored by the daemon, CLI, hooks and VS Code extension). |
 | `CLIPCMD_AUTOSHELL` | `0` turns automatic `clipcmd shell` off; `1` forces it (outside VS Code). |
 | `CLIPCMD_AUTOSTART` | `0` stops the hooks from starting the daemon. |
+| `CLIPCMD_COPY_FEEDBACK` | `0` turns the "Copied" confirmation off (read when the daemon starts). |
 | `CLIPCMD_POWERSHELL_PROFILE` | Makes `clipcmd init` / `uninstall` use this PowerShell profile file. |
 
 `clipcmd init` edits shell config files in place and keeps their encoding (UTF-8, UTF-8 with BOM, UTF-16 as written by Windows PowerShell's `>`, or legacy code pages) byte-for-byte outside the clipcmd block.

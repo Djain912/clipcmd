@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { getConfigDir, getPortFile } from '../config/paths';
 import { createShortcutTemplate, removeShortcutFiles } from '../shared/windowsShortcuts';
+import { removeCopiedTag } from '../shared/copyFeedback';
 
 /**
  * `clipcmd://` link handler, so a click on a copy button copies silently
@@ -132,6 +133,7 @@ function unregisterWindows(scheme: string): void {
   run('reg.exe', ['delete', `HKCU\\Software\\Classes\\${scheme}`, '/f']);
   fs.rmSync(getHandlerScriptPath(), { force: true });
   removeShortcutFiles();
+  removeCopiedTag();
 }
 
 /** The command Windows runs for `{scheme}://` links, or undefined if unregistered. */

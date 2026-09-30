@@ -598,6 +598,71 @@ describe('Windows shortcut buttons and the click tip', () => {
   });
 });
 
+describe('copy confirmation', () => {
+  let dir: string;
+  let d: TestDaemon;
+  const confirmed: string[] = [];
+
+  beforeEach(async () => {
+    dir = makeTempDir();
+    confirmed.length = 0;
+    d = await startTestDaemon({ configDir: dir, onCopied: (message) => confirmed.push(message) });
+  });
+  afterEach(async () => {
+    await d.stop();
+    removeDir(dir);
+  });
+
+  async function block(cmd: string): Promise<string> {
+    await request(d.port, `/start?${qs({ cmd, pwd: '/', sid: cmd })}`);
+    await request(d.port, `/end?exitCode=0&sid=${cmd}`);
+    return d.ringBuffer.getAll().at(-1)!.id;
+  }
+
+  it('says what each click copied, after the copy', async () => {
+    const a = await block('a');
+    const b = await block('b');
+    for (const type of ['cmd', 'output', 'both']) await request(d.port, `/copy?id=${a}&type=${type}`);
+    await request(d.port, `/select?id=${a}`);
+    await request(d.port, `/select?id=${b}`);
+    await request(d.port, `/select?id=${a}`);
+    await request(d.port, `/select?id=${a}`);
+    await request(d.port, '/copy-selected');
+    expect(confirmed).toEqual([
+      'Copied command',
+      'Copied output',
+      'Copied command + output',
+      'Collected: 1 command copied',
+      'Collected: 2 commands copied',
+      'Removed: 1 command left',
+      'Collected: 2 commands copied',
+      'Copied 2 commands',
+    ]);
+  });
+
+  it('confirms nothing that failed, and a failing confirmation does not fail the copy', async () => {
+    const a = await block('a');
+    await request(d.port, '/copy?id=nope&type=cmd');
+    await request(d.port, `/copy?id=${a}&type=bogus`);
+    d.clipboard.fail = true;
+    expect((await request(d.port, `/copy?id=${a}&type=cmd`)).status).toBe(500);
+    expect((await request(d.port, `/select?id=${a}`)).status).toBe(500);
+    expect(confirmed).toEqual([]);
+
+    await d.stop();
+    d = await startTestDaemon({
+      configDir: dir,
+      onCopied: () => {
+        throw new Error('no display');
+      },
+    });
+    const b = await block('b');
+    const res = await request(d.port, `/copy?id=${b}&type=cmd`);
+    expect([res.status, res.body]).toEqual([200, 'Copied command to clipboard']);
+    expect(d.logs.join('\n')).toContain('Copy confirmation failed: no display');
+  });
+});
+
 describe('DaemonServer lifecycle', () => {
   let dir: string;
   const saved = process.env.CLIPCMD_CONFIG_DIR;

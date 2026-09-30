@@ -86,6 +86,7 @@ describe('ConfigManager', () => {
     ['links', true],
     ['autoShell', 'yes'],
     ['autoShell', 0],
+    ['copyFeedback', 'off'],
   ])('replaces invalid %s=%j with the default and warns', (key, value) => {
     writeRaw(JSON.stringify({ [key]: value }));
     const warnings: string[] = [];
@@ -94,9 +95,9 @@ describe('ConfigManager', () => {
     expect(warnings[0]).toContain(key);
   });
 
-  it('accepts the links and autoShell settings', () => {
-    writeRaw(JSON.stringify({ links: 'http', autoShell: false }));
-    expect(ConfigManager.load()).toEqual({ ...DEFAULT_CONFIG, links: 'http', autoShell: false });
+  it('accepts the links, autoShell and copyFeedback settings', () => {
+    writeRaw(JSON.stringify({ links: 'http', autoShell: false, copyFeedback: false }));
+    expect(ConfigManager.load()).toEqual({ ...DEFAULT_CONFIG, links: 'http', autoShell: false, copyFeedback: false });
   });
 
   it('ignores unknown keys', () => {
@@ -120,6 +121,7 @@ describe('ConfigManager', () => {
           maxOutputBytes: fc.integer({ min: 0, max: 1024 * 1024 }),
           links: fc.constantFrom('auto' as const, 'clipcmd' as const, 'http' as const),
           autoShell: fc.boolean(),
+          copyFeedback: fc.boolean(),
         }),
         (config: ClipCmdConfig) => {
           ConfigManager.save(config);
