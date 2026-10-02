@@ -2,6 +2,10 @@
 
 All notable changes to the `clipcmd` CLI. This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.0.3 — 2026-10-02
+
+- README: clipcmd comes in two parts, and the npm page now says so up front: install this package and the clipcmd VS Code extension (step buttons, a highlighted note, and the extension as its own Quick start step). No code changes.
+
 ## 0.0.2 — 2026-09-30
 
 - The README opens with an animated demo and links to a 25-second video of clipcmd in use. No code changes.
