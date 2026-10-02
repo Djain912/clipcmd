@@ -6,24 +6,37 @@ Copy a terminal command's **output** — or the command and its output together 
 
 [**▶ Download the 25-second video with sound (MP4, 6.5 MB)**](https://github.com/Djain912/clipcmd/raw/main/docs/clipcmd-launch.mp4)
 
+[![Step 1: install the clipcmd npm package](https://img.shields.io/badge/Step%201-Install%20the%20npm%20package-CB3837?style=for-the-badge&logo=npm&logoColor=white)](https://www.npmjs.com/package/clipcmd)
+[![Step 2: install the clipcmd VS Code extension](https://img.shields.io/badge/Step%202-Install%20the%20VS%20Code%20extension-007ACC?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0yMC41IDExSDE5VjdjMC0xLjEtLjktMi0yLTJoLTRWMy41QzEzIDIuMTIgMTEuODggMSAxMC41IDFTOCAyLjEyIDggMy41VjVINGMtMS4xIDAtMS45OS45LTEuOTkgMnYzLjhIMy41YzEuNDkgMCAyLjcgMS4yMSAyLjcgMi43cy0xLjIxIDIuNy0yLjcgMi43SDJWMjBjMCAxLjEuOSAyIDIgMmgzLjh2LTEuNWMwLTEuNDkgMS4yMS0yLjcgMi43LTIuNyAxLjQ5IDAgMi43IDEuMjEgMi43IDIuN1YyMkgxN2MxLjEgMCAyLS45IDItMnYtNGgxLjVjMS4zOCAwIDIuNS0xLjEyIDIuNS0yLjVTMjEuODggMTEgMjAuNSAxMXoiLz48L3N2Zz4%3D)](#getting-started)
+
+> ### ⚠️ clipcmd comes in two parts — install both
+>
+> 1. **The [`clipcmd` package from npm](https://www.npmjs.com/package/clipcmd)** — the command, the background daemon and the shell hooks. It puts the buttons under every command, in every terminal: `npm install -g clipcmd`, then `clipcmd init`. **This extension does nothing without it.**
+> 2. **This extension** — makes `[COPY OUTPUT]` and `[COPY BOTH]` work in VS Code's terminal (without it, VS Code only shows `[COPY CMD]` and `[+]`).
+
 This extension is the VS Code half of [**clipcmd**](https://www.npmjs.com/package/clipcmd), the command-line tool that prints these buttons after every command in PowerShell, bash, zsh and fish.
 
 ## Getting started
 
+| Part | What it does | Install |
+|---|---|---|
+| **npm package** `clipcmd` | The buttons, in every terminal | `npm install -g clipcmd`, then `clipcmd init` |
+| **VS Code extension** `djain912.clipcmd` (this one) | `[COPY OUTPUT]` and `[COPY BOTH]` in VS Code's terminal | the **Install** button on this page, or `code --install-extension djain912.clipcmd` |
+
 1. Install [Node.js](https://nodejs.org) 20 or newer, if you do not have it (`node -v` tells you).
-2. Install the clipcmd CLI. In a terminal (VS Code's is fine):
+2. **Install the npm package.** In a terminal (VS Code's is fine):
 
    ```bash
    npm install -g clipcmd
    ```
 
-3. Set it up for the shell you use in VS Code:
+3. **Set it up** for the shell you use in VS Code:
 
    ```bash
    clipcmd init
    ```
 
-4. Install this extension.
+4. **Install this extension** — the **Install** button on this page, or search **clipcmd** in VS Code's Extensions view (**Ctrl+Shift+X**, **Cmd+Shift+X** on macOS).
 5. Open a **new** terminal (**Terminal → New Terminal**).
 6. Run any command, then hold **Ctrl** (**Cmd** on macOS) and click a button under it. A small **✓ Copied** confirmation appears; paste anywhere.
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.2 — 2026-10-02
+
+- README: an animated demo and a 25-second video at the top, and a clear note that clipcmd comes in two parts: install the clipcmd npm package and this extension. No code changes.
+
 ## 0.0.1 — 2026-09-30
 
 First public release.
