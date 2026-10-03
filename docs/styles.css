@@ -265,3 +265,6 @@ h1 { font-size: clamp(40px, 5.6vw, 66px); font-weight: 800; letter-spacing: -0.0
   .tbtns.fresh .tbtn { animation: none; }
   .btn, .copied-tag { transition: none; }
 }
+
+/* the product name, first in the main heading */
+.h1-brand { display: block; width: fit-content; margin-bottom: 14px; font-family: var(--mono); font-size: 0.42em; font-weight: 700; letter-spacing: 0; color: var(--green); background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.35); border-radius: 10px; padding: 4px 14px; }
