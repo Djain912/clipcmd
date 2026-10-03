@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>clipcmd: Copy Terminal Command Output in One Click</title>
+  <meta name="description" content="Free CLI that puts copy buttons under every terminal command: copy the command, its output, or both, and paste into your AI agent. PowerShell, bash, zsh, fish.">
+  <meta name="keywords" content="copy terminal output, copy command output to clipboard, terminal copy button, paste terminal error into ChatGPT, paste error into Claude, AI agent debugging, PowerShell copy output, bash copy last command output, zsh, fish, VS Code terminal copy output, Windows Terminal, OSC 8, npm CLI">
+  <meta name="author" content="Darshan Jain">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://djain912.github.io/clipcmd/">
+  <meta property="og:site_name" content="clipcmd">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://djain912.github.io/clipcmd/">
+  <meta property="og:title" content="clipcmd: copy buttons under every terminal command">
+  <meta property="og:description" content="Ctrl+click [COPY BOTH] and paste the exact command and its full output into your AI agent, an issue or a chat. No selecting, no scrolling, no missed lines.">
+  <meta property="og:image" content="https://djain912.github.io/clipcmd/assets/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A terminal with the buttons [COPY CMD] [COPY OUTPUT] [COPY BOTH] [+] under a failed build, and the confirmation: Copied command + output">
+  <meta property="og:video" content="https://djain912.github.io/clipcmd/clipcmd-launch.mp4">
+  <meta property="og:video:type" content="video/mp4">
+  <meta property="og:video:width" content="1920">
+  <meta property="og:video:height" content="1080">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="clipcmd: copy buttons under every terminal command">
+  <meta name="twitter:description" content="Copy a command, its output, or both in one click. Paste errors into your AI agent without select, scroll, select again. PowerShell, bash, zsh, fish.">
+  <meta name="twitter:image" content="https://djain912.github.io/clipcmd/assets/og-image.jpg">
+  <meta name="theme-color" content="#0B1120">
+  <link rel="icon" type="image/png" sizes="128x128" href="assets/icon.png">
+  <link rel="apple-touch-icon" href="assets/icon.png">
+  <link rel="sitemap" type="application/xml" href="sitemap.xml">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "clipcmd", "alternateName": "clipcmd: copy buttons after every terminal command", "description": "Free, open-source command-line tool that prints [COPY CMD], [COPY OUTPUT], [COPY BOTH] and [+] buttons under every terminal command in PowerShell, bash, zsh and fish, so a Ctrl+click copies the command, its output as clean text, or both. A VS Code extension adds output capture in VS Code's terminal.", "url": "https://djain912.github.io/clipcmd/", "downloadUrl": "https://www.npmjs.com/package/clipcmd", "installUrl": "https://www.npmjs.com/package/clipcmd", "applicationCategory": "DeveloperApplication", "applicationSubCategory": "Command-line tool", "operatingSystem": "Windows, macOS, Linux", "softwareVersion": "0.0.3", "softwareRequirements": "Node.js 20 or newer", "image": "https://djain912.github.io/clipcmd/assets/og-image.jpg", "screenshot": ["https://djain912.github.io/clipcmd/demo.png", "https://djain912.github.io/clipcmd/assets/poster.jpg"], "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "featureList": ["Copy buttons under every terminal command", "Copy the command, its output, or both", "Output copied as clean plain text without colors", "Collect several commands into one paste", "Copied confirmation next to the mouse pointer", "PowerShell 5.1 and 7, bash, Git Bash, zsh and fish", "Windows Terminal, VS Code, iTerm2, WezTerm, kitty, GNOME Terminal", "Runs locally on 127.0.0.1, no telemetry"], "author": {"@type": "Person", "name": "Darshan Jain", "alternateName": "Djain912", "url": "https://linkedin.com/in/darshanjain912", "sameAs": ["https://linkedin.com/in/darshanjain912", "https://github.com/Djain912"]}, "sameAs": ["https://github.com/Djain912/clipcmd", "https://www.npmjs.com/package/clipcmd", "https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd"]}, {"@context": "https://schema.org", "@type": "VideoObject", "name": "clipcmd in 25 seconds", "description": "Copying a failed build into an AI agent by hand (select, scroll, select again, copy, paste), then one Ctrl+click on [COPY BOTH] and a complete paste with clipcmd.", "thumbnailUrl": "https://djain912.github.io/clipcmd/assets/poster.jpg", "contentUrl": "https://djain912.github.io/clipcmd/clipcmd-launch.mp4", "uploadDate": "2026-09-30", "duration": "PT25S"}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I copy terminal output to the clipboard?", "acceptedAnswer": {"@type": "Answer", "text": "Install clipcmd with npm install -g clipcmd, run clipcmd init, and open a new terminal. Every command then gets [COPY CMD] [COPY OUTPUT] [COPY BOTH] [+] buttons; hold Ctrl (Cmd on macOS) and click one. The output is copied as plain text, without colors."}}, {"@type": "Question", "name": "How do I paste a terminal error into ChatGPT, Claude or another AI agent?", "acceptedAnswer": {"@type": "Answer", "text": "Ctrl+click [COPY BOTH] under the failed command, then paste into the agent's prompt. You get the line $ command followed by its complete output, so the agent sees exactly what ran and everything it printed."}}, {"@type": "Question", "name": "Does clipcmd work in PowerShell, bash, zsh and fish?", "acceptedAnswer": {"@type": "Answer", "text": "Yes: Windows PowerShell 5.1, PowerShell 7, bash (including Git Bash), zsh and fish, on Windows, macOS and Linux, in terminals with clickable links such as Windows Terminal, VS Code, iTerm2, WezTerm, kitty, GNOME Terminal, Konsole and Alacritty."}}, {"@type": "Question", "name": "Do I need the clipcmd VS Code extension?", "acceptedAnswer": {"@type": "Answer", "text": "In VS Code's terminal, yes, for [COPY OUTPUT] and [COPY BOTH]: the extension reads each command's output from VS Code's shell integration. Without it, VS Code shows only [COPY CMD] and [+]. In other terminals the npm package alone is enough."}}, {"@type": "Question", "name": "Why do I have to hold Ctrl when I click a button?", "acceptedAnswer": {"@type": "Answer", "text": "The buttons are terminal hyperlinks, and terminals open links only on Ctrl+click (Cmd+click on macOS). A plain click, for example to select text, never copies anything by accident."}}, {"@type": "Question", "name": "Is my terminal output sent anywhere?", "acceptedAnswer": {"@type": "Answer", "text": "No. A small background daemon listens only on 127.0.0.1 and keeps your last 200 commands in memory. Nothing is sent over the network and there is no telemetry."}}, {"@type": "Question", "name": "Does clipcmd work in cmd.exe?", "acceptedAnswer": {"@type": "Answer", "text": "No. cmd.exe has no way to run code before and after each command. Use PowerShell, which is installed on every Windows PC, or bash."}}, {"@type": "Question", "name": "How do I uninstall clipcmd?", "acceptedAnswer": {"@type": "Answer", "text": "Run clipcmd uninstall --all, then npm uninstall -g clipcmd. This removes the shell hooks, the link handler and the Windows Terminal setting, and stops the daemon. In VS Code, uninstall the clipcmd extension from the Extensions view."}}, {"@type": "Question", "name": "Is clipcmd free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. clipcmd is free and open source under the MIT license. Bug reports, ideas and pull requests are welcome on GitHub."}}]}]</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="./" aria-label="clipcmd home">
+        <img src="assets/icon.png" alt="" width="32" height="32">
+        <span>clipcmd</span>
+      </a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#demo">Demo</a>
+        <a href="#video">Video</a>
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="icon-link" href="https://github.com/Djain912/clipcmd" aria-label="clipcmd on GitHub">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+        <a class="btn btn-small" href="#install">Install</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero with a live demo -->
+    <section class="hero" id="demo">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Free &amp; open source · PowerShell · bash · zsh · fish</p>
+          <h1>Copy terminal output <span class="grad">in one click.</span></h1>
+          <p class="lead">clipcmd puts copy buttons under every command you run. Ctrl+click <code>[COPY BOTH]</code> and paste the exact command and its full output into your AI agent, an issue or a chat. No selecting, no scrolling, no missed lines.</p>
+          <div class="install-line">
+            <code id="npm-cmd"><span class="p">$</span> npm install -g clipcmd</code>
+            <button class="copy" type="button" data-copy="npm install -g clipcmd" data-label="Copied install command">Copy</button>
+          </div>
+          <p class="hint">Then run <code>clipcmd init</code> and open a new terminal. Using VS Code? <a href="#install">Also install the extension</a>.</p>
+          <div class="hero-actions">
+            <a class="btn" href="#install">Get started</a>
+            <a class="btn btn-ghost" href="#video">Watch the 25-second video</a>
+          </div>
+        </div>
+
+        <div class="hero-demo">
+          <div class="term" aria-label="Interactive demo of clipcmd in a terminal">
+            <div class="term-bar">
+              <div class="term-tabs" role="tablist" aria-label="Shell">
+                <button role="tab" class="term-tab" data-shell="powershell" aria-selected="true">PowerShell</button>
+                <button role="tab" class="term-tab" data-shell="bash" aria-selected="false">bash</button>
+                <button role="tab" class="term-tab" data-shell="zsh" aria-selected="false">zsh</button>
+                <button role="tab" class="term-tab" data-shell="fish" aria-selected="false">fish</button>
+              </div>
+              <button class="term-replay" type="button" aria-label="Replay the demo">↻</button>
+            </div>
+            <div class="term-body" id="term-body"></div>
+          </div>
+          <div class="agent">
+            <div class="agent-head">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4ADE80"/><stop offset="1" stop-color="#38BDF8"/></linearGradient></defs><path fill="url(#sg)" d="M12 1.5l2.4 7.1 7.1 2.4-7.1 2.4L12 20.5l-2.4-7.1L2.5 11l7.1-2.4z"/></svg>
+              <label for="agent-box">Your AI agent <span>(try it: click a button above, then paste here)</span></label>
+              <button class="agent-clear" type="button">Clear</button>
+            </div>
+            <textarea id="agent-box" spellcheck="false" placeholder="Click [COPY BOTH] in the terminal, then press Ctrl+V here…"></textarea>
+            <p class="agent-meta" id="agent-meta">In your own terminal you hold Ctrl (Cmd on macOS) while you click.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Before / after -->
+    <section class="section compare reveal" aria-labelledby="compare-title">
+      <div class="wrap">
+        <h2 id="compare-title">Debugging with an AI agent shouldn't start with <span class="grad">a copy-paste dance.</span></h2>
+        <div class="compare-grid">
+          <div class="compare-card bad">
+            <h3>Without clipcmd</h3>
+            <ol class="steps">
+              <li>Drag-select the error</li>
+              <li>Scroll, lose the selection</li>
+              <li>Select again</li>
+              <li>Copy, paste</li>
+              <li class="miss">…and the agent still misses a line</li>
+            </ol>
+          </div>
+          <div class="compare-card good">
+            <h3>With clipcmd</h3>
+            <ol class="steps">
+              <li>Ctrl+click <code>[COPY BOTH]</code></li>
+              <li>Paste</li>
+            </ol>
+            <p class="good-note">The agent gets <code>$ command</code> and the complete output, exactly as the terminal showed it.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Video -->
+    <section class="section reveal" id="video" aria-labelledby="video-title">
+      <div class="wrap narrow">
+        <h2 id="video-title">The whole idea in <span class="grad">25 seconds.</span></h2>
+        <p class="section-lead">From a failed build to a complete paste in your AI agent's prompt.</p>
+        <div class="video-frame">
+          <video controls preload="none" playsinline width="1920" height="1080" poster="assets/poster.jpg">
+            <source src="clipcmd-launch.mp4" type="video/mp4">
+            Your browser cannot play this video. <a href="clipcmd-launch.mp4">Download it (MP4, 6.5 MB)</a>.
+          </video>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two parts -->
+    <section class="section reveal" id="install" aria-labelledby="install-title">
+      <div class="wrap">
+        <h2 id="install-title">Two parts. <span class="grad">Install both.</span></h2>
+        <p class="section-lead">You need <a href="https://nodejs.org">Node.js</a> 20 or newer (<code>node -v</code> tells you). The npm package works in every terminal; the extension adds output capture in VS Code's terminal.</p>
+        <div class="parts">
+          <article class="part">
+            <span class="step-badge">Step 1</span>
+            <h3>The npm package <code>clipcmd</code></h3>
+            <p>The command, the background daemon and the shell hooks. It puts the buttons under every command, in every terminal.</p>
+            <div class="cmd-block">
+              <div class="cmd-row"><code><span class="p">$</span> npm install -g clipcmd</code><button class="copy" type="button" data-copy="npm install -g clipcmd" data-label="Copied install command">Copy</button></div>
+              <div class="cmd-row"><code><span class="p">$</span> clipcmd init</code><button class="copy" type="button" data-copy="clipcmd init" data-label="Copied setup command">Copy</button></div>
+            </div>
+            <p class="small">Run <code>clipcmd init</code> in each shell you use. It detects the shell; name it to choose: <code>bash</code>, <code>zsh</code>, <code>fish</code>, <code>powershell</code> or <code>pwsh</code>.</p>
+            <a class="btn btn-npm" href="https://www.npmjs.com/package/clipcmd">clipcmd on npm</a>
+          </article>
+          <article class="part">
+            <span class="step-badge blue">Step 2</span>
+            <h3>The VS Code extension</h3>
+            <p>Makes <code>[COPY OUTPUT]</code> and <code>[COPY BOTH]</code> work in VS Code's terminal. Without it, VS Code only shows <code>[COPY CMD]</code> and <code>[+]</code>.</p>
+            <div class="cmd-block">
+              <div class="cmd-row"><code><span class="p">$</span> code --install-extension djain912.clipcmd</code><button class="copy" type="button" data-copy="code --install-extension djain912.clipcmd" data-label="Copied install command">Copy</button></div>
+            </div>
+            <p class="small">Or open the Extensions view (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>), search <strong>clipcmd</strong> and click Install.</p>
+            <a class="btn btn-vscode" href="https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd">Open the Marketplace</a>
+          </article>
+        </div>
+        <ol class="then">
+          <li><strong>Open a new terminal</strong> window or tab. The daemon starts by itself.</li>
+          <li><strong>Run any command,</strong> for example <code>git status</code>. The buttons appear under it.</li>
+          <li><strong>Hold Ctrl</strong> (Cmd on macOS) <strong>and click a button.</strong> A small ✓ Copied confirmation appears; paste anywhere.</li>
+        </ol>
+        <p class="small center">Something not working? <code>clipcmd doctor</code> checks the whole setup and says how to fix it.</p>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section reveal" id="features" aria-labelledby="features-title">
+      <div class="wrap">
+        <h2 id="features-title">Four buttons. <span class="grad">Exactly what you need.</span></h2>
+        <div class="buttons-grid">
+          <article class="bcard"><code class="k green">[COPY CMD]</code><h3>The command line</h3><pre>npm run build</pre></article>
+          <article class="bcard"><code class="k blue">[COPY OUTPUT]</code><h3>The output, as clean text</h3><pre>Found 1 error in src/cart.ts:42</pre></article>
+          <article class="bcard"><code class="k grad-text">[COPY BOTH]</code><h3><code>$ command</code> + output, ready to paste</h3><pre>$ npm run build
+&gt; tsc -p .</pre></article>
+          <article class="bcard"><code class="k white">[+]</code><h3>Several commands, one paste</h3><pre>$ git status
+$ npm test
+$ npm run build</pre></article>
+        </div>
+        <div class="features">
+          <article class="feature">
+            <h3>Clean plain text</h3>
+            <p>Colors and cursor movement are resolved, progress bars keep their final state, and long lines that wrapped are joined back into one. What you paste is what the command displayed.</p>
+          </article>
+          <article class="feature">
+            <h3>✓ Copied, right where you clicked</h3>
+            <p>A small tag next to the mouse pointer confirms every copy on Windows. It never takes focus and shows even with Do Not Disturb on. macOS and Linux show a short notification.</p>
+          </article>
+          <article class="feature">
+            <h3>Works in your terminal</h3>
+            <p>Windows Terminal, VS Code, iTerm2, WezTerm, kitty, GNOME Terminal, Konsole, Alacritty, and any terminal with clickable links. Your prompt, <code>$?</code> and exit codes stay intact.</p>
+          </article>
+          <article class="feature">
+            <h3>Private by design</h3>
+            <p>Everything stays on your machine: the daemon listens only on <code>127.0.0.1</code> and keeps your last 200 commands in memory. No accounts, no telemetry.</p>
+          </article>
+          <article class="feature">
+            <h3>Starts by itself</h3>
+            <p>The daemon starts with your first terminal, also after a reboot. <code>clipcmd stop</code> keeps it off until <code>clipcmd start</code>.</p>
+          </article>
+          <article class="feature">
+            <h3>Fix it with one command</h3>
+            <p><code>clipcmd doctor</code> checks Node.js, the hooks, the daemon, the link handler and the VS Code extension, and tells you how to fix what is missing.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="section reveal" id="how" aria-labelledby="how-title">
+      <div class="wrap">
+        <h2 id="how-title">How it works, <span class="grad">behind the scenes.</span></h2>
+        <ol class="flow">
+          <li><span class="n">1</span><h3>A hook in your shell</h3><p><code>clipcmd init</code> adds a small hook to your shell's startup file. It tells the daemon when each command starts and ends.</p></li>
+          <li><span class="n">2</span><h3>A daemon on 127.0.0.1</h3><p>A tiny background program remembers your recent commands and their output, and builds the buttons.</p></li>
+          <li><span class="n">3</span><h3>Buttons are links</h3><p>Each button is a terminal hyperlink. A Ctrl+click runs a handler registered for your user account, with no browser and no window.</p></li>
+          <li><span class="n">4</span><h3>Straight to your clipboard</h3><p>The daemon copies exactly what you asked for, and the ✓ Copied tag confirms it.</p></li>
+        </ol>
+        <p class="small center">To know what a command printed, interactive terminals run inside a recorder (<code>clipcmd shell</code>, automatic); in VS Code, the extension reads the output from VS Code's shell integration. <a href="https://github.com/Djain912/clipcmd/blob/main/cli/README.md#how-it-works">Read the details</a>.</p>
+      </div>
+    </section>
+
+    <!-- Compatibility -->
+    <section class="section reveal" id="compat" aria-labelledby="compat-title">
+      <div class="wrap">
+        <h2 id="compat-title">Works where <span class="grad">you work.</span></h2>
+        <div class="compat">
+          <div><h3>Shells</h3><ul class="chips"><li>Windows PowerShell 5.1</li><li>PowerShell 7</li><li>bash</li><li>Git Bash</li><li>zsh</li><li>fish</li></ul></div>
+          <div><h3>Terminals</h3><ul class="chips"><li>Windows Terminal</li><li>VS Code</li><li>iTerm2</li><li>WezTerm</li><li>kitty</li><li>GNOME Terminal</li><li>Konsole</li><li>Alacritty</li></ul></div>
+          <div><h3>Systems</h3><ul class="chips"><li>Windows</li><li>macOS</li><li>Linux</li></ul></div>
+        </div>
+        <p class="small center">macOS Terminal.app and the classic Windows console have no clickable links; cmd.exe cannot run hooks. tmux needs <code>set -ga terminal-features "*:hyperlinks"</code>.</p>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section reveal" id="faq" aria-labelledby="faq-title">
+      <div class="wrap narrow">
+        <h2 id="faq-title">Questions, <span class="grad">answered.</span></h2>
+        <div class="faq">
+          <details><summary>How do I copy terminal output to the clipboard?</summary><p>Install clipcmd with <code>npm install -g clipcmd</code>, run <code>clipcmd init</code>, and open a new terminal. Every command then gets <code>[COPY CMD]</code> <code>[COPY OUTPUT]</code> <code>[COPY BOTH]</code> <code>[+]</code> buttons; hold Ctrl (Cmd on macOS) and click one. The output is copied as plain text, without colors.</p></details>
+          <details><summary>How do I paste a terminal error into ChatGPT, Claude or another AI agent?</summary><p>Ctrl+click <code>[COPY BOTH]</code> under the failed command, then paste into the agent's prompt. You get the line <code>$ command</code> followed by its complete output, so the agent sees exactly what ran and everything it printed.</p></details>
+          <details><summary>Does clipcmd work in PowerShell, bash, zsh and fish?</summary><p>Yes: Windows PowerShell 5.1, PowerShell 7, bash (including Git Bash), zsh and fish, on Windows, macOS and Linux, in terminals with clickable links such as Windows Terminal, VS Code, iTerm2, WezTerm, kitty, GNOME Terminal, Konsole and Alacritty.</p></details>
+          <details><summary>Do I need the clipcmd VS Code extension?</summary><p>In VS Code's terminal, yes, for <code>[COPY OUTPUT]</code> and <code>[COPY BOTH]</code>: the extension reads each command's output from VS Code's shell integration. Without it, VS Code shows only <code>[COPY CMD]</code> and <code>[+]</code>. In other terminals the npm package alone is enough.</p></details>
+          <details><summary>Why do I have to hold Ctrl when I click a button?</summary><p>The buttons are terminal hyperlinks, and terminals open links only on Ctrl+click (Cmd+click on macOS). A plain click, for example to select text, never copies anything by accident.</p></details>
+          <details><summary>Is my terminal output sent anywhere?</summary><p>No. A small background daemon listens only on <code>127.0.0.1</code> and keeps your last 200 commands in memory. Nothing is sent over the network and there is no telemetry.</p></details>
+          <details><summary>Does clipcmd work in cmd.exe?</summary><p>No. cmd.exe has no way to run code before and after each command. Use PowerShell, which is installed on every Windows PC, or bash.</p></details>
+          <details><summary>How do I uninstall clipcmd?</summary><p>Run <code>clipcmd uninstall --all</code>, then <code>npm uninstall -g clipcmd</code>. This removes the shell hooks, the link handler and the Windows Terminal setting, and stops the daemon. In VS Code, uninstall the clipcmd extension from the Extensions view.</p></details>
+          <details><summary>Is clipcmd free?</summary><p>Yes. clipcmd is free and open source under the MIT license. Bug reports, ideas and pull requests are welcome <a href="https://github.com/Djain912/clipcmd">on GitHub</a>.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final call to action -->
+    <section class="section cta reveal" aria-labelledby="cta-title">
+      <div class="wrap narrow center">
+        <img src="assets/icon.png" alt="" width="88" height="88" loading="lazy">
+        <h2 id="cta-title">Stop drag-selecting your terminal.</h2>
+        <div class="install-line center-line">
+          <code><span class="p">$</span> npm install -g clipcmd</code>
+          <button class="copy" type="button" data-copy="npm install -g clipcmd" data-label="Copied install command">Copy</button>
+        </div>
+        <div class="hero-actions center-actions">
+          <a class="btn btn-npm" href="https://www.npmjs.com/package/clipcmd">Install from npm</a>
+          <a class="btn btn-vscode" href="https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd">Get the VS Code extension</a>
+          <a class="btn btn-ghost" href="https://github.com/Djain912/clipcmd">Star on GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div class="brand small-brand"><img src="assets/icon.png" alt="" width="24" height="24" loading="lazy"><span>clipcmd</span></div>
+      <nav aria-label="Links">
+        <a href="https://github.com/Djain912/clipcmd">GitHub</a>
+        <a href="https://www.npmjs.com/package/clipcmd">npm</a>
+        <a href="https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd">VS Code Marketplace</a>
+        <a href="https://github.com/Djain912/clipcmd/blob/main/cli/README.md">Documentation</a>
+        <a href="https://github.com/Djain912/clipcmd/issues">Report a bug</a>
+      </nav>
+      <p>MIT licensed · Built by <a href="https://linkedin.com/in/darshanjain912">Darshan Jain</a> (<a href="https://github.com/Djain912">@Djain912</a>)</p>
+    </div>
+  </footer>
+
+  <div class="copied-tag" id="copied-tag" role="status" aria-live="polite" hidden>
+    <svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="13" fill="#22C55E"/><path d="M7.3 13.5l4 4 7.4-8.2" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span id="copied-text">Copied</span>
+  </div>
+
+  <script src="app.js?v=2" defer></script>
+</body>
+</html>

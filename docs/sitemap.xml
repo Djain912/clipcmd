@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+  <url>
+    <loc>https://djain912.github.io/clipcmd/</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image><image:loc>https://djain912.github.io/clipcmd/assets/og-image.jpg</image:loc></image:image>
+    <image:image><image:loc>https://djain912.github.io/clipcmd/assets/poster.jpg</image:loc></image:image>
+    <image:image><image:loc>https://djain912.github.io/clipcmd/demo.png</image:loc></image:image>
+    <video:video>
+      <video:thumbnail_loc>https://djain912.github.io/clipcmd/assets/poster.jpg</video:thumbnail_loc>
+      <video:title>clipcmd in 25 seconds</video:title>
+      <video:description>Copying a failed build into an AI agent by hand, then one Ctrl+click on [COPY BOTH] and a complete paste with clipcmd.</video:description>
+      <video:content_loc>https://djain912.github.io/clipcmd/clipcmd-launch.mp4</video:content_loc>
+      <video:duration>25</video:duration>
+    </video:video>
+  </url>
+</urlset>

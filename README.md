@@ -12,6 +12,7 @@
   <a href="https://github.com/Djain912/clipcmd/actions/workflows/ci.yml"><img src="https://github.com/Djain912/clipcmd/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/clipcmd"><img src="https://img.shields.io/npm/v/clipcmd" alt="npm"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd"><img src="https://img.shields.io/visual-studio-marketplace/v/djain912.clipcmd?label=VS%20Code" alt="VS Code Marketplace"></a>
+  <a href="https://djain912.github.io/clipcmd/"><img src="https://img.shields.io/badge/website-djain912.github.io%2Fclipcmd-38BDF8" alt="Website"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="MIT"></a>
 </p>
 
@@ -80,6 +81,7 @@ Something not working? Run `clipcmd doctor`: it checks everything and says how t
 
 ## Learn more
 
+- [**The clipcmd website**](https://djain912.github.io/clipcmd/) — a live demo you can click, the video, and the FAQ
 - [How to use it](cli/README.md#using-clipcmd) — the buttons, collecting several commands, where output can be copied
 - [Configuration](cli/README.md#configuration) — `~/.config/clipcmd/config.json` and environment variables
 - [Troubleshooting](cli/README.md#troubleshooting)
@@ -98,7 +100,7 @@ Details: [cli/README.md](cli/README.md#how-it-works).
 |---|---|---|
 | [`cli/`](cli) | The `clipcmd` command, background daemon and shell hooks — [full documentation](cli/README.md) | [`clipcmd` on npm](https://www.npmjs.com/package/clipcmd) |
 | [`vscode-extension/`](vscode-extension) | Output capture and daemon controls for VS Code's terminal | [`djain912.clipcmd` on the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd) |
-| [`docs/`](docs) | The launch video and the images in the READMEs | — |
+| [`docs/`](docs) | The website, the launch video and the images in the READMEs | [djain912.github.io/clipcmd](https://djain912.github.io/clipcmd/) (GitHub Pages) |
 
 ## Contributing
 
