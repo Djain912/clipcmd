@@ -2,6 +2,11 @@
 
 All notable changes to the `clipcmd` CLI. This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.0.4 — 2026-10-05
+
+- clipcmd points out the missing half. In VS Code's terminal without the extension, the hint under the buttons gives the install command (`code --install-extension djain912.clipcmd`) and a Ctrl+click link to the Marketplace. `clipcmd init` says when VS Code is installed without the extension, and `clipcmd doctor` warns about it.
+- The npm page links to the website, https://djain912.github.io/clipcmd/.
+
 ## 0.0.3 — 2026-10-02
 
 - README: clipcmd comes in two parts, and the npm page now says so up front: install this package and the clipcmd VS Code extension (step buttons, a highlighted note, and the extension as its own Quick start step). No code changes.

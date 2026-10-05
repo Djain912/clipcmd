@@ -5,7 +5,8 @@ import { RingBuffer, Block } from './ringBuffer';
 import { MultiSelectQueue } from './multiSelectQueue';
 import { CaptureSource, isValidSessionId } from './capture';
 import { ClipboardWriter } from './clipboard';
-import { buildButtonsString, LinkScheme } from './osc8';
+import { buildButtonsString, buildOsc8Button, LinkScheme } from './osc8';
+import { EXTENSION_INSTALL, EXTENSION_URL } from '../installer/vscode';
 import type { ButtonLinks } from '../shared/windowsShortcuts';
 import { removePortFileIfOwned, writePortFile } from '../config/portFile';
 
@@ -641,9 +642,10 @@ function formatSelection(blocks: Block[]): string {
   return blocks.map((block) => `${commandWithOutput(block)}\n\n`).join('');
 }
 
+/** One line, starting with 'clipcmd:' so the VS Code extension leaves it out of copied output. */
 function captureHint(term: string | undefined): string {
   return term === 'vscode'
-    ? 'clipcmd: install the clipcmd VS Code extension to also copy command output here.'
+    ? `clipcmd: install the ${buildOsc8Button('clipcmd VS Code extension', EXTENSION_URL)} to also copy command output here: ${EXTENSION_INSTALL}`
     : 'clipcmd: to also copy command output, run this shell inside `clipcmd shell`.';
 }
 

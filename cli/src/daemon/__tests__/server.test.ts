@@ -148,7 +148,12 @@ describe('DaemonServer HTTP API', () => {
           await request(vs.port, `/start?${qs({ cmd: 'ls', pwd: '/', sid: 'v1', term: 'vscode' })}`);
           return (await request(vs.port, '/end?exitCode=0&sid=v1')).body;
         };
-        expect(await cmd()).toContain('install the clipcmd VS Code extension');
+        // Without the extension: a hint that says how to install it, with a Ctrl+click link to its page
+        const hint = await cmd();
+        const plain = hint.replace(/\x1b\]8;;[^\x07]*\x07/g, '');
+        expect(plain).toContain('clipcmd: install the clipcmd VS Code extension to also copy command output here: code --install-extension djain912.clipcmd');
+        expect(hint).toContain('\x1b]8;;https://marketplace.visualstudio.com/items?itemName=djain912.clipcmd\x07clipcmd VS Code extension\x1b]8;;\x07');
+        expect(plain.split('\n').filter((l) => l.includes('clipcmd:')).every((l) => /^(\x1b\[2m)?clipcmd: /.test(l))).toBe(true);
         expect((await request(vs.port, '/client?kind=vscode')).status).toBe(200);
         expect(await cmd()).toContain('[COPY OUTPUT]');
         now += 6 * 60 * 1000; // extension went away

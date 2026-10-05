@@ -20,6 +20,7 @@ import {
 } from '../../installer/protocolHandler';
 import { isPowerShell, SUPPORTED_SHELLS, SupportedShell } from '../../installer/shellDetector';
 import { findWindowsTerminalSettings, parseJsonc } from '../../installer/windowsTerminal';
+import { EXTENSION_INSTALL, getVscodeStatus } from '../../installer/vscode';
 import { describePid, getDaemonState } from '../../shared/daemonClient';
 import { getShortcutTemplatePath } from '../../shared/windowsShortcuts';
 import { loadNodePty } from '../../shared/nodePty';
@@ -173,23 +174,22 @@ export async function runChecks(): Promise<Check[]> {
     }
   }
 
-  const extensions = path.join(os.homedir(), '.vscode', 'extensions');
-  const hasExtension = (() => {
-    try {
-      return fs.readdirSync(extensions).some((dir) => /^djain912\.clipcmd-/i.test(dir));
-    } catch {
-      return false;
-    }
-  })();
-  checks.push(
-    hasExtension
-      ? { level: 'ok', title: 'VS Code extension installed' }
-      : {
-          level: 'info',
-          title: 'VS Code extension not installed (optional: output capture in VS Code terminals)',
-          fix: 'Install "clipcmd" from the VS Code Marketplace.',
-        }
-  );
+  const vscode = getVscodeStatus();
+  if (vscode.extension) {
+    checks.push({ level: 'ok', title: 'VS Code extension installed' });
+  } else if (vscode.installed) {
+    checks.push({
+      level: 'warn',
+      title: 'VS Code is installed, but the clipcmd extension is not: [COPY OUTPUT] and [COPY BOTH] do not work in its terminal',
+      fix: `Run \`${EXTENSION_INSTALL}\`, or search "clipcmd" in VS Code's Extensions view.`,
+    });
+  } else {
+    checks.push({
+      level: 'info',
+      title: 'VS Code extension not installed (only needed in VS Code\'s terminal)',
+      fix: `If you use VS Code: \`${EXTENSION_INSTALL}\``,
+    });
+  }
 
   return checks;
 }

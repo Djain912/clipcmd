@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.3 — 2026-10-05
+
+- The extension points out the missing half: when VS Code starts without the clipcmd npm package, a notification offers to install it (`npm install -g clipcmd` and `clipcmd init` in a new terminal); when the package is installed but not set up for a shell, it offers to run `clipcmd init`. "Don't Show Again" turns it off.
+- "How to Install" opens the install steps on the website, and the Marketplace page links to it.
+
 ## 0.0.2 — 2026-10-02
 
 - README: an animated demo and a 25-second video at the top, and a clear note that clipcmd comes in two parts: install the clipcmd npm package and this extension. No code changes.

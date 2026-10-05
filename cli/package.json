@@ -1,6 +1,6 @@
 {
   "name": "clipcmd",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Copy buttons after every terminal command: copy the command, its output, or both in one click. PowerShell, bash, zsh, fish.",
   "keywords": [
     "terminal",

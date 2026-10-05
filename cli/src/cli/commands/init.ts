@@ -6,6 +6,7 @@ import { getConfigPath, install, MalformedHookBlockError } from '../../installer
 import { blocksProfileScripts, getPowerShellInfo } from '../../installer/powershell';
 import { registerProtocolHandler, urlScheme } from '../../installer/protocolHandler';
 import { allowSchemeInWindowsTerminal } from '../../installer/windowsTerminal';
+import { EXTENSION_INSTALL, getVscodeStatus } from '../../installer/vscode';
 import type { SupportedShell } from '../../installer/shellDetector';
 
 /**
@@ -83,6 +84,14 @@ export async function run(args: string[]): Promise<number> {
       break;
   }
   setUpSilentLinks();
+  // The other half: VS Code's terminal needs the extension for the output buttons
+  const vscode = getVscodeStatus();
+  if (vscode.installed && !vscode.extension) {
+    console.log(
+      'VS Code: also install the clipcmd extension, so [COPY OUTPUT] and [COPY BOTH] work in its terminal:\n' +
+        `  ${EXTENSION_INSTALL}`
+    );
+  }
   if (result !== 'unchanged') console.log(reloadInstruction(shell));
   const warning = shell === 'bash' ? loginShellWarning() : undefined;
   if (warning) console.log(warning);

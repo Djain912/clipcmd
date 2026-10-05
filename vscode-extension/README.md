@@ -63,7 +63,9 @@ The clipcmd daemon starts by itself with your first terminal. **clipcmd: Check D
 
 Both commands also return their result, so other extensions can call `vscode.commands.executeCommand('clipcmd.checkDaemon')`.
 
-The extension activates after VS Code has finished starting, so it adds nothing to start-up time, and it never shows a notification on its own.
+**Tells you when the other half is missing.** When VS Code starts, the extension checks for the clipcmd npm package. If it is not installed, a notification offers **Install** (runs `npm install -g clipcmd` and `clipcmd init` in a new terminal); if it is installed but not set up for your shell, it offers **Set Up** (runs `clipcmd init`). **Don't Show Again** turns the notice off. Otherwise the extension shows nothing on its own.
+
+The extension activates after VS Code has finished starting, so it adds nothing to start-up time.
 
 ## Settings
 

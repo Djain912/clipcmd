@@ -7,7 +7,8 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { DaemonStatus } from '../../daemonClient';
-import type { StartResult } from '../../extension';
+import { checkCli } from '../../extension';
+import type { ClipcmdApi, StartResult } from '../../extension';
 
 const EXTENSION_ID = 'djain912.clipcmd';
 const COMMAND = 'clipcmd.checkDaemon';
@@ -163,7 +164,7 @@ suite('clipcmd extension (in VS Code)', () => {
     return (server.address() as net.AddressInfo).port;
   }
 
-  test('activates after startup (not during it) and shows nothing on its own', async () => {
+  test('activates after startup (not during it)', async () => {
     const extension = vscode.extensions.getExtension(EXTENSION_ID);
     assert.ok(extension, `${EXTENSION_ID} should be loaded`);
     assert.deepEqual(extension.packageJSON.activationEvents, ['onStartupFinished']);
@@ -329,6 +330,63 @@ suite('clipcmd extension (in VS Code)', () => {
     assert.equal(result.ok, false);
     assert.match(result.message, /Daemon failed to start/);
     assert.equal(shown[0].level, 'warning');
+  });
+
+  // ---- the other half: the clipcmd npm package
+  /** A fresh in-memory store for "Don't Show Again" (the real one would persist between runs). */
+  function memento(): vscode.Memento {
+    const data = new Map<string, unknown>();
+    return {
+      keys: () => [...data.keys()],
+      get: (key: string, fallback?: unknown) => (data.has(key) ? data.get(key) : fallback),
+      update: async (key: string, value: unknown) => void data.set(key, value),
+    } as unknown as vscode.Memento;
+  }
+
+  test('activation returns an API that runs the npm package check', async () => {
+    const api = (await vscode.extensions.getExtension(EXTENSION_ID)!.activate()) as ClipcmdApi;
+    assert.equal(typeof api.checkCli, 'function');
+  });
+
+  test('says when the clipcmd npm package is missing; Install runs it in a terminal', async () => {
+    await setCliPath(path.join(scratch, 'missing', process.platform === 'win32' ? 'clipcmd.cmd' : 'clipcmd'));
+    const ran: string[][] = [];
+    choice = 'Install';
+    assert.equal(await checkCli(memento(), { runInTerminal: (lines) => ran.push(lines) }), 'missing');
+    await waitUntil(() => ran.length === 1);
+    assert.deepEqual(ran, [['npm install -g clipcmd', 'clipcmd init']]);
+    assert.equal(shown.length, 1);
+    assert.equal(shown[0].level, 'warning');
+    assert.match(shown[0].message, /needs its npm package/);
+    assert.deepEqual(shown[0].items, ['Install', 'How to Install', "Don't Show Again"]);
+  });
+
+  test('says when clipcmd is installed but not set up; Set Up runs `clipcmd init`', async () => {
+    await setCliPath(fakeCli(path.join(scratch, 'no-hook'), '[FAIL] No shell hook installed', 1));
+    const ran: string[][] = [];
+    choice = 'Set Up';
+    assert.equal(await checkCli(memento(), { runInTerminal: (lines) => ran.push(lines) }), 'not-set-up');
+    await waitUntil(() => ran.length === 1);
+    assert.deepEqual(ran, [['clipcmd init']]);
+    assert.match(shown[0].message, /not set up for your shell/);
+    assert.deepEqual(shown[0].items, ['Set Up', "Don't Show Again"]);
+  });
+
+  test('stays quiet when the npm package is installed and set up', async () => {
+    await setCliPath(fakeCli(path.join(scratch, 'ready'), '0.0.4'));
+    assert.equal(await checkCli(memento(), { runInTerminal: () => assert.fail('nothing to run') }), 'ok');
+    assert.deepEqual(shown, []);
+  });
+
+  test("Don't Show Again mutes the notice", async () => {
+    await setCliPath(path.join(scratch, 'missing', process.platform === 'win32' ? 'clipcmd.cmd' : 'clipcmd'));
+    const state = memento();
+    choice = "Don't Show Again";
+    assert.equal(await checkCli(state, { runInTerminal: () => assert.fail('nothing to run') }), 'missing');
+    await waitUntil(() => state.keys().length === 1);
+    shown.length = 0;
+    assert.equal(await checkCli(state, { runInTerminal: () => assert.fail('nothing to run') }), 'dismissed');
+    assert.deepEqual(shown, []);
   });
 
   test('never produces error notifications for any daemon state', () => {

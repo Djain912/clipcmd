@@ -6,11 +6,34 @@ import { announceToDaemon, captureTerminalOutput } from './outputCapture';
 /** Tells the daemon a VS Code window can deliver output (it forgets after 5 minutes). */
 const ANNOUNCE_INTERVAL_MS = 60 * 1000;
 
-/** The CLI's page, with install steps (npm shows its README). */
-export const INSTALL_GUIDE_URL = 'https://www.npmjs.com/package/clipcmd';
+/** The website's install steps (both parts: the npm package and this extension). */
+export const INSTALL_GUIDE_URL = 'https://djain912.github.io/clipcmd/#install';
 
 const START_ACTION = 'Start Daemon';
 const INSTALL_ACTION = 'How to Install';
+const INSTALL_NOW = 'Install';
+const SET_UP_NOW = 'Set Up';
+const DONT_SHOW = "Don't Show Again";
+
+/** globalState key: the user asked not to be told about a missing or unset-up CLI. */
+const CLI_NOTICE_DISMISSED = 'clipcmd.cliNoticeDismissed';
+
+/** Typed into a new terminal by the Install button: the npm package, then its shell setup. */
+export const INSTALL_LINES = ['npm install -g clipcmd', 'clipcmd init'];
+export const SET_UP_LINES = ['clipcmd init'];
+
+/** What checkCli found: the CLI is ready, missing, installed but not set up, or the user muted the notice. */
+export type CliCheck = 'ok' | 'missing' | 'not-set-up' | 'dismissed';
+
+export interface CheckCliOptions {
+  /** Runs commands in a new terminal (tests replace it so nothing is installed for real). */
+  runInTerminal?: (lines: string[]) => void;
+}
+
+/** Returned by activate(), so tests and other extensions can run the check. */
+export interface ClipcmdApi {
+  checkCli(options?: CheckCliOptions): Promise<CliCheck>;
+}
 
 /** States that `clipcmd start` fixes (not a hung daemon, which it would not replace). */
 const STARTABLE: ReadonlySet<DaemonState> = new Set(['not-running', 'stale', 'unreachable', 'invalid-port-file']);
@@ -28,6 +51,60 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push({ dispose: () => clearInterval(timer) });
 
   void allowClipcmdLinks();
+
+  // This extension is one half of clipcmd: say so when the other half is missing
+  void checkCli(context.globalState);
+  const api: ClipcmdApi = { checkCli: (options) => checkCli(context.globalState, options) };
+  return api;
+}
+
+/**
+ * The extension only captures output; the copy buttons come from the clipcmd
+ * npm package and the shell hook that `clipcmd init` installs. When either is
+ * missing, a notification says so and offers to fix it in a terminal. It
+ * returns at once; the notification stays until answered.
+ */
+export async function checkCli(state: vscode.Memento, options: CheckCliOptions = {}): Promise<CliCheck> {
+  if (state.get<boolean>(CLI_NOTICE_DISMISSED)) return 'dismissed';
+  const run = options.runInTerminal ?? runInNewTerminal;
+  const version = await runCli(['--version'], cliPath());
+  if (version.notFound) {
+    void vscode.window
+      .showWarningMessage(
+        'clipcmd needs its npm package: this extension captures output, but the copy buttons come from the clipcmd command (Node.js 20 or newer). Install it now?',
+        INSTALL_NOW,
+        INSTALL_ACTION,
+        DONT_SHOW
+      )
+      .then((choice) => answer(choice, INSTALL_LINES));
+    return 'missing';
+  }
+  // Installed: is it set up for a shell? (`clipcmd doctor` fails without a hook)
+  const doctor = await runCli(['doctor'], cliPath());
+  if (/No shell hook installed/.test(doctor.stdout + doctor.stderr)) {
+    void vscode.window
+      .showWarningMessage(
+        'clipcmd is installed but not set up for your shell yet, so no copy buttons appear. Run `clipcmd init` now?',
+        SET_UP_NOW,
+        DONT_SHOW
+      )
+      .then((choice) => answer(choice, SET_UP_LINES));
+    return 'not-set-up';
+  }
+  return 'ok';
+
+  function answer(choice: string | undefined, lines: string[]): void {
+    if (choice === INSTALL_NOW || choice === SET_UP_NOW) run(lines);
+    else if (choice === INSTALL_ACTION) void vscode.env.openExternal(vscode.Uri.parse(INSTALL_GUIDE_URL));
+    else if (choice === DONT_SHOW) void state.update(CLI_NOTICE_DISMISSED, true);
+  }
+}
+
+/** Opens a terminal and types the commands; each runs after the one before. */
+function runInNewTerminal(lines: string[]): void {
+  const terminal = vscode.window.createTerminal({ name: 'clipcmd setup' });
+  terminal.show();
+  for (const line of lines) terminal.sendText(line);
 }
 
 /**

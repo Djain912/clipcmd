@@ -299,6 +299,23 @@ describe('doctor', () => {
     expect(r.stdout).toContain('[WARN] Daemon stopped with `clipcmd stop`');
   });
 
+  it('init and doctor point out a missing VS Code extension when VS Code is installed', async () => {
+    const extensions = path.join(home, '.vscode', 'extensions');
+    fs.mkdirSync(extensions, { recursive: true });
+    const init = await cli(['init', 'bash']);
+    expect(init.code).toBe(0);
+    expect(init.stdout).toContain('VS Code: also install the clipcmd extension, so [COPY OUTPUT] and [COPY BOTH] work in its terminal:');
+    expect(init.stdout).toContain('  code --install-extension djain912.clipcmd');
+    let r = await cli(['doctor']);
+    expect(r.stdout).toContain('[WARN] VS Code is installed, but the clipcmd extension is not');
+    expect(r.stdout).toContain('code --install-extension djain912.clipcmd');
+
+    fs.mkdirSync(path.join(extensions, 'djain912.clipcmd-0.0.2'));
+    expect((await cli(['init', 'bash'])).stdout).not.toContain('VS Code: also install');
+    r = await cli(['doctor']);
+    expect(r.stdout).toContain('[ OK ] VS Code extension installed');
+  });
+
   it('reports invalid config values', async () => {
     fs.writeFileSync(path.join(configDir, 'config.json'), JSON.stringify({ port, links: 'carrier-pigeon' }));
     const r = await cli(['doctor']);
