@@ -322,16 +322,37 @@ describe.skipIf(!pty || !PS_EXE)(`PowerShell hook: daemon auto-start (${PS_EXE})
     term.onExit(() => (exited = true));
     const stopAnswering = answerTerminalQueries(term, 150, 40);
     const prompts = () => stripAnsi(screen).split('READY>').length - 1;
+    // Typed key by key: on macOS and Linux, .NET asks the terminal for the
+    // cursor position while PSReadLine redraws, and a burst of typed-ahead
+    // keys can interleave with the reply and garble the line.
+    const type = async (text: string): Promise<void> => {
+      if (process.platform === 'win32') {
+        term.write(text);
+        return;
+      }
+      for (const ch of text) {
+        term.write(ch);
+        await sleep(25);
+      }
+    };
     try {
       await waitFor(() => prompts() >= 1, 30000);
       for (const command of commands) {
         const before = prompts();
-        term.write(`${command}\r`);
+        await type(`${command}\r`);
         await waitFor(() => prompts() > before, 20000);
       }
       if (beforeExit) await waitFor(beforeExit, 15000);
-      term.write('exit\r');
-      await waitFor(() => exited, 15000);
+      await type('exit\r');
+      try {
+        await waitFor(() => exited, 10000);
+      } catch {
+        // A garbled line: clear it (Ctrl+C) and type `exit` again
+        term.write('\x03');
+        await sleep(500);
+        await type('exit\r');
+        await waitFor(() => exited, 15000);
+      }
     } catch (err) {
       throw withScreen(err, screen);
     } finally {
